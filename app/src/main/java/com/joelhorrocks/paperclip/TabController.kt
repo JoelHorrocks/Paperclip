@@ -46,13 +46,10 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
         ) {
             super.onLocationChange(session, url, perms, hasUserGesture)
 
-            _tabs.update {
-                it.map { tab ->
-                    if (_tabs.value.indexOf(tab) == currentTabIndex.value) {
-                        tab.copy(currentUrl = url ?: "")
-                    } else {
-                        tab
-                    }
+            _tabs.update { tabs ->
+                tabs.map { tab ->
+                    if (tab.geckoSession == session) tab.copy(currentUrl = url ?: "")
+                    else tab
                 }
             }
         }
@@ -75,5 +72,9 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
             session.loadUri("about:buildconfig")
             _currentTabIndex.value = _tabs.value.size - 1
         }
+    }
+
+    fun goBack(tab: Tab) {
+        tab.geckoSession.goBack()
     }
 }

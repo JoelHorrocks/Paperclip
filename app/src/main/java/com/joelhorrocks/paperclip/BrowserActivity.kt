@@ -2,6 +2,7 @@ package com.joelhorrocks.paperclip
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -21,7 +22,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tab
@@ -68,6 +68,9 @@ class MainActivity : ComponentActivity() {
                     ) {
                         NavBar(browserViewModel)
                         BrowserScreen(browserViewModel)
+                        BackHandler {
+                            browserViewModel.goBack()
+                        }
                     }
                 }
             }

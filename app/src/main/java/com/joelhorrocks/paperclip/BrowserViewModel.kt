@@ -1,6 +1,5 @@
 package com.joelhorrocks.paperclip
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -68,5 +67,14 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
 
     fun createTab() {
         tabController.createTab()
+    }
+
+    fun goBack() {
+        val currentTab = _uiState.value.currentTab
+        if(currentTab != null) {
+            viewModelScope.launch {
+                tabController.goBack(currentTab)
+            }
+        }
     }
 }
