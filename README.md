@@ -7,8 +7,8 @@ A work in progress GeckoView-based Android web browser built from the ground up 
 
 - [x] URL bar
 - [x] Tab system
-- [ ] Tab management
-- [ ] Navigation controls (forward, back)
+- [x] Tab management
+- [x] Navigation controls (forward, back)
 - [ ] Web prompt support
 - [ ] Persist browser state
 - [ ] Web history
