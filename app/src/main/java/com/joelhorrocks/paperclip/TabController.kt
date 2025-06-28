@@ -63,6 +63,27 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
         _currentTabIndex.value = index
     }
 
+    fun closeTab(index: Int) {
+        if (index < 0 || index >= _tabs.value.size) return
+
+        val sessionToClose = _tabs.value[index].geckoSession
+        sessionToClose.close()
+
+        if(_tabs.value.size == 1) {
+            createInitialTab()
+            _tabs.update { tabs ->
+                tabs.filterIndexed { i, _ -> i != 1 }
+            }
+            return
+        } else if(_currentTabIndex.value!! >= index) {
+            _currentTabIndex.value = _currentTabIndex.value!! - 1
+        }
+
+        _tabs.update { tabs ->
+            tabs.filterIndexed { i, _ -> i != index }
+        }
+    }
+
     fun createTab() {
         browserEngine.createSession().let { session ->
             _tabs.update {

@@ -65,6 +65,10 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
         tabController.selectTab(index)
     }
 
+    fun closeTab(index: Int) {
+        tabController.closeTab(index)
+    }
+
     fun createTab() {
         tabController.createTab()
     }

@@ -38,6 +38,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tab
@@ -71,6 +73,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
@@ -163,15 +166,29 @@ fun NavBarContainer(browserViewModel: BrowserViewModel) {
                                         MaterialTheme.colorScheme.primaryContainer
                                     else
                                         MaterialTheme.colorScheme.surface
-                                ).fillMaxWidth()
+                                ).fillMaxWidth().padding(8.dp)
                             ) {
                                 Text(
-                                    modifier = Modifier.padding(8.dp),
                                     text = tab.currentUrl,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     overflow = TextOverflow.Ellipsis,
-                                    maxLines = 1
+                                    fontSize = 14.sp,
+                                    maxLines = 1,
+                                    modifier = Modifier.weight(1f)
                                 )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                IconButton(
+                                    onClick = {
+                                        browserViewModel.closeTab(index)
+                                    },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close",
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
                             }
                             HorizontalDivider(
                                 modifier = Modifier.fillMaxWidth(),
@@ -183,8 +200,8 @@ fun NavBarContainer(browserViewModel: BrowserViewModel) {
                                     .fillMaxSize()
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Tab,
-                                    contentDescription = "Tab Icon",
+                                    imageVector = Icons.Default.Image,
+                                    contentDescription = "Tab Screenshot Icon",
                                     modifier = Modifier
                                         .padding(8.dp)
                                         .size(48.dp)
