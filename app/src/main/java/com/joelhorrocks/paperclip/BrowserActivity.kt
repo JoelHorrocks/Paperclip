@@ -6,10 +6,14 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
@@ -38,6 +42,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
@@ -64,9 +69,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
@@ -105,7 +115,7 @@ class MainActivity : ComponentActivity() {
                                 .fillMaxHeight()
                         ) {
                             Box {
-                                BrowserScreen(browserViewModel)
+                                Content(browserViewModel)
                             }
                             BackHandler {
                                 browserViewModel.goBack()
@@ -141,7 +151,10 @@ fun NavBarContainer(browserViewModel: BrowserViewModel) {
                     anchoredDraggableState.requireOffset().roundToInt()
                 )
             }
-            .anchoredDraggable(anchoredDraggableState, Orientation.Vertical)
+            .anchoredDraggable(
+                state = anchoredDraggableState,
+                orientation = Orientation.Vertical
+            )
             .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp))
     ) {
         NavBar(browserViewModel)
@@ -155,7 +168,7 @@ fun NavBarContainer(browserViewModel: BrowserViewModel) {
                             containerColor = MaterialTheme.colorScheme.surface,
                         ),
                         border = BorderStroke(1.dp, Color.Black),
-                        modifier = Modifier.width(180.dp).padding(4.dp).clickable {
+                        modifier = Modifier.width(180.dp).padding(4.dp).clip(CardDefaults.shape).clickable {
                             browserViewModel.selectTab(index)
                         }
                     ) {
@@ -169,7 +182,7 @@ fun NavBarContainer(browserViewModel: BrowserViewModel) {
                                 ).fillMaxWidth().padding(8.dp)
                             ) {
                                 Text(
-                                    text = tab.currentUrl,
+                                    text = if(tab.currentUrl == "") "Homepage" else tab.currentUrl,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     overflow = TextOverflow.Ellipsis,
                                     fontSize = 14.sp,
@@ -227,7 +240,7 @@ fun NavBar(browserViewModel: BrowserViewModel) {
             .padding(4.dp)
     ) {
         Spacer(modifier = Modifier.width(4.dp))
-        val url = browserViewModel.uiState.collectAsStateWithLifecycle().value.currentUrl
+        val url = browserViewModel.uiState.collectAsStateWithLifecycle().value.navBarText
         val interactionSource = remember { MutableInteractionSource() }
         val focusManager = LocalFocusManager.current
         BasicTextField(
@@ -326,6 +339,37 @@ fun NavBar(browserViewModel: BrowserViewModel) {
                 )
             }
         }
+    }
+}
+
+@Composable
+fun Content(browserViewModel: BrowserViewModel) {
+    val state by browserViewModel.uiState.collectAsStateWithLifecycle()
+    when(state.currentUrl) {
+        "" -> HomeScreen()
+        else -> BrowserScreen(browserViewModel)
+    }
+}
+
+@Composable
+fun HomeScreen() {
+    Column {
+        Row(
+            modifier = Modifier.padding(8.dp)
+        ) {
+            Image(
+                Icons.Default.AttachFile,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp).rotate(45f)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                "Paperclip",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        Text("Homepage")
     }
 }
 

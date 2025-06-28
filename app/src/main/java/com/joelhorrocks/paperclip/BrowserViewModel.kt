@@ -17,6 +17,7 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
         val tabs: List<TabController.Tab> = emptyList(),
         val currentTabIndex: Int? = 0,
         val currentUrl: String = "",
+        val navBarText: String = "",
         val isLoading: Boolean = false
     ) {
         val currentTab: TabController.Tab?
@@ -37,6 +38,7 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
                         tabs = tabs,
                         currentTabIndex = currentIndex,
                         currentUrl = currentIndex?.let { index -> tabs[index].currentUrl } ?: "",
+                        navBarText = currentIndex?.let { index -> tabs[index].currentUrl } ?: "",
                         isLoading = currentIndex?.let { index -> tabs[index].isLoading } ?: false
                     )
                 }
@@ -47,7 +49,7 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
     fun updateUrl(url: String) {
         _uiState.update {
             it.copy(
-                currentUrl = url
+                navBarText = url
             )
         }
     }
@@ -56,7 +58,7 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
         val currentTab = _uiState.value.currentTab
         if(currentTab != null) {
             viewModelScope.launch {
-                tabController.loadUrl(currentTab, _uiState.value.currentUrl)
+                tabController.loadUrl(currentTab, _uiState.value.navBarText)
             }
         }
     }

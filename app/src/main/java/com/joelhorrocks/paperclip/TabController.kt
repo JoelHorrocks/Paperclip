@@ -32,7 +32,7 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
         browserEngine.createSession().let { session ->
             _tabs.value = listOf(Tab(geckoSession = session))
             session.navigationDelegate = createNavigationDelegate()
-            session.loadUri("about:buildconfig")
+            //session.loadUri("")
             _currentTabIndex.value = 0
         }
     }
@@ -90,7 +90,7 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
                 it + Tab(geckoSession = session)
             }
             session.navigationDelegate = createNavigationDelegate()
-            session.loadUri("about:buildconfig")
+            //session.loadUri("about:buildconfig")
             _currentTabIndex.value = _tabs.value.size - 1
         }
     }
