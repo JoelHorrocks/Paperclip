@@ -16,6 +16,7 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
     data class BrowserUiState(
         val tabs: List<TabController.Tab> = emptyList(),
         val currentTabIndex: Int? = 0,
+        // TODO: consolidate with GeckoView so this instead comes from currentTab?
         val currentUrl: String = "",
         val navBarText: String = "",
         val isLoading: Boolean = false

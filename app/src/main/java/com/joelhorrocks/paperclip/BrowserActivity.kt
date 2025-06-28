@@ -88,6 +88,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import dagger.hilt.android.AndroidEntryPoint
+import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
 import kotlin.math.roundToInt
 
@@ -106,6 +107,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             PaperclipTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    val state by browserViewModel.uiState.collectAsStateWithLifecycle()
                     Box(
                         modifier = Modifier.padding(innerPadding)
                     ) {
@@ -115,16 +117,40 @@ class MainActivity : ComponentActivity() {
                                 .fillMaxHeight()
                         ) {
                             Box {
-                                Content(browserViewModel)
+                                Content(state.currentTab?.geckoSession, state.currentUrl)
                             }
                             BackHandler {
                                 browserViewModel.goBack()
                             }
                         }
+                        // TODO: chatgpt, fix url bar
                         Box(
                             modifier = Modifier.align(Alignment.BottomCenter)
                         ) {
-                            NavBarContainer(browserViewModel)
+                            NavBarContainer(
+                                browserViewModel,
+                                state.currentTabIndex,
+                                state.tabs,
+                                state.navBarText,
+                                updateUrl = { url ->
+                                    browserViewModel.updateUrl(url)
+                                },
+                                submitUrl = {
+                                    browserViewModel.submitUrl()
+                                },
+                                goBack = {
+                                    browserViewModel.goBack()
+                                },
+                                createTab = {
+                                    browserViewModel.createTab()
+                                },
+                                selectTab = { index ->
+                                    browserViewModel.selectTab(index)
+                                },
+                                closeTab = { index ->
+                                    browserViewModel.closeTab(index)
+                                }
+                            )
                         }
                     }
                 }
@@ -134,7 +160,18 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun NavBarContainer(browserViewModel: BrowserViewModel) {
+fun NavBarContainer(
+    browserViewModel: BrowserViewModel,
+    currentTabIndex: Int?,
+    tabs: List<TabController.Tab>,
+    url: String,
+    updateUrl: (url: String) -> Unit,
+    submitUrl: () -> Unit,
+    goBack: () -> Unit,
+    createTab: () -> Unit,
+    selectTab: (index: Int) -> Unit,
+    closeTab: (index: Int) -> Unit
+) {
     val density = LocalDensity.current
     val anchoredDraggableState = remember { AnchoredDraggableState(
         initialValue = DragAnchors.Start,
@@ -157,9 +194,8 @@ fun NavBarContainer(browserViewModel: BrowserViewModel) {
             )
             .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp))
     ) {
-        NavBar(browserViewModel)
+        NavBar(url, updateUrl, submitUrl, goBack, createTab)
         Box(modifier = Modifier.height(348.dp).padding(top = WindowInsets.navigationBars.getBottom(density).toDp(), start = 4.dp, end = 4.dp)) {
-            val tabs = browserViewModel.uiState.collectAsStateWithLifecycle().value.tabs
             LazyHorizontalGrid(rows = GridCells.Fixed(2)) {
                 items(tabs.size) { index ->
                     val tab = tabs[index]
@@ -169,13 +205,13 @@ fun NavBarContainer(browserViewModel: BrowserViewModel) {
                         ),
                         border = BorderStroke(1.dp, Color.Black),
                         modifier = Modifier.width(180.dp).padding(4.dp).clip(CardDefaults.shape).clickable {
-                            browserViewModel.selectTab(index)
+                            selectTab(index)
                         }
                     ) {
                         Column {
                             Row(
                                 modifier = Modifier.background(
-                                    if(browserViewModel.uiState.collectAsStateWithLifecycle().value.currentTabIndex == index)
+                                    if(currentTabIndex == index)
                                         MaterialTheme.colorScheme.primaryContainer
                                     else
                                         MaterialTheme.colorScheme.surface
@@ -192,7 +228,7 @@ fun NavBarContainer(browserViewModel: BrowserViewModel) {
                                 Spacer(modifier = Modifier.width(8.dp))
                                 IconButton(
                                     onClick = {
-                                        browserViewModel.closeTab(index)
+                                        closeTab(index)
                                     },
                                     modifier = Modifier.size(24.dp)
                                 ) {
@@ -232,7 +268,7 @@ fun NavBarContainer(browserViewModel: BrowserViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NavBar(browserViewModel: BrowserViewModel) {
+fun NavBar(url: String, updateUrl: (url: String) -> Unit, submitUrl: () -> Unit, goBack: () -> Unit, createTab: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -240,13 +276,12 @@ fun NavBar(browserViewModel: BrowserViewModel) {
             .padding(4.dp)
     ) {
         Spacer(modifier = Modifier.width(4.dp))
-        val url = browserViewModel.uiState.collectAsStateWithLifecycle().value.navBarText
         val interactionSource = remember { MutableInteractionSource() }
         val focusManager = LocalFocusManager.current
         BasicTextField(
             value = url,
             onValueChange = {
-                browserViewModel.updateUrl(it)
+                updateUrl(it)
             },
             modifier = Modifier
                 .height(40.dp)
@@ -255,7 +290,7 @@ fun NavBar(browserViewModel: BrowserViewModel) {
             singleLine = true,
             keyboardActions = KeyboardActions(
                 onGo = {
-                    browserViewModel.submitUrl()
+                    submitUrl()
                     focusManager.clearFocus()
                 }
             ),
@@ -314,7 +349,7 @@ fun NavBar(browserViewModel: BrowserViewModel) {
                 Row {
                     IconButton(
                         onClick = {
-                            browserViewModel.goBack()
+                            goBack()
                             moreMenuExpanded = false
                         }
                     ) {
@@ -328,7 +363,7 @@ fun NavBar(browserViewModel: BrowserViewModel) {
                 DropdownMenuItem(
                     text = { Text("New Tab") },
                     onClick = {
-                        browserViewModel.createTab()
+                        createTab()
                     },
                     leadingIcon = {
                         Icon(
@@ -343,11 +378,10 @@ fun NavBar(browserViewModel: BrowserViewModel) {
 }
 
 @Composable
-fun Content(browserViewModel: BrowserViewModel) {
-    val state by browserViewModel.uiState.collectAsStateWithLifecycle()
-    when(state.currentUrl) {
+fun Content(geckoSession: GeckoSession?, currentUrl: String) {
+    when(currentUrl) {
         "" -> HomeScreen()
-        else -> BrowserScreen(browserViewModel)
+        else -> BrowserScreen(geckoSession)
     }
 }
 
@@ -374,11 +408,9 @@ fun HomeScreen() {
 }
 
 @Composable
-fun BrowserScreen(browserViewModel: BrowserViewModel) {
-    val state by browserViewModel.uiState.collectAsStateWithLifecycle()
-
+fun BrowserScreen(geckoSession: GeckoSession?) {
     Box(modifier = Modifier.fillMaxSize()) {
-        state.currentTab?.geckoSession?.let { geckoSession ->
+        geckoSession?.let { geckoSession ->
             AndroidView(
                 factory = {
                     GeckoView(it)
