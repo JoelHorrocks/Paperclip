@@ -6,33 +6,31 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,12 +40,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Tab
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -63,20 +62,21 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
@@ -88,6 +88,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.distinctUntilChanged
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
 import kotlin.math.roundToInt
@@ -123,15 +124,23 @@ class MainActivity : ComponentActivity() {
                                 browserViewModel.goBack()
                             }
                         }
-                        // TODO: chatgpt, fix url bar
+                        var drawerOpen by remember { mutableFloatStateOf(0f) }
+                        // TODO: tap background to close drawer
+                        if(drawerOpen != 0f) {
+                            Box(
+                                modifier = Modifier.fillMaxSize().background(Color(0xff000000).copy(alpha = drawerOpen / 2))
+                            )
+                        }
                         Box(
                             modifier = Modifier.align(Alignment.BottomCenter)
                         ) {
                             NavBarContainer(
-                                browserViewModel,
                                 state.currentTabIndex,
                                 state.tabs,
                                 state.navBarText,
+                                updateDrawerPercentage = { state ->
+                                    drawerOpen = state
+                                },
                                 updateUrl = { url ->
                                     browserViewModel.updateUrl(url)
                                 },
@@ -161,10 +170,10 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun NavBarContainer(
-    browserViewModel: BrowserViewModel,
     currentTabIndex: Int?,
     tabs: List<TabController.Tab>,
     url: String,
+    updateDrawerPercentage: (state: Float) -> Unit,
     updateUrl: (url: String) -> Unit,
     submitUrl: () -> Unit,
     goBack: () -> Unit,
@@ -172,14 +181,21 @@ fun NavBarContainer(
     selectTab: (index: Int) -> Unit,
     closeTab: (index: Int) -> Unit
 ) {
-    val density = LocalDensity.current
+    val heightPx = with(LocalDensity.current) { 348.dp.toPx() }
     val anchoredDraggableState = remember { AnchoredDraggableState(
         initialValue = DragAnchors.Start,
         anchors = DraggableAnchors {
-            DragAnchors.Start at (348).dp.toPx()
+            DragAnchors.Start at heightPx
             DragAnchors.End at 0f
         }
     ) }
+    LaunchedEffect(anchoredDraggableState) {
+        snapshotFlow { (1 - (anchoredDraggableState.offset / heightPx)) }
+            .distinctUntilChanged()
+            .collect { state ->
+                updateDrawerPercentage(state)
+            }
+    }
     Column(
         modifier = Modifier
             .offset {
@@ -192,10 +208,11 @@ fun NavBarContainer(
                 state = anchoredDraggableState,
                 orientation = Orientation.Vertical
             )
-            .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp))
+            // TODO: rounded top corners once navbar hiding when scrolling is done
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         NavBar(url, updateUrl, submitUrl, goBack, createTab)
-        Box(modifier = Modifier.height(348.dp).padding(top = WindowInsets.navigationBars.getBottom(density).toDp(), start = 4.dp, end = 4.dp)) {
+        Box(modifier = Modifier.height(348.dp).padding(start = 4.dp, end = 4.dp).graphicsLayer { alpha = ((1 - (anchoredDraggableState.offset / heightPx)).coerceAtMost(0.2f) / 0.2f) }) {
             LazyHorizontalGrid(rows = GridCells.Fixed(2)) {
                 items(tabs.size) { index ->
                     val tab = tabs[index]
@@ -387,9 +404,11 @@ fun Content(geckoSession: GeckoSession?, currentUrl: String) {
 
 @Composable
 fun HomeScreen() {
-    Column {
+    Column(
+        modifier = Modifier.padding(8.dp)
+    ) {
         Row(
-            modifier = Modifier.padding(8.dp)
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
                 Icons.Default.AttachFile,
@@ -399,11 +418,102 @@ fun HomeScreen() {
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 "Paperclip",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.headlineLarge
             )
         }
-        Text("Homepage")
+        Spacer(modifier = Modifier.height(16.dp))
+        ShortcutsRow()
+        Spacer(modifier = Modifier.height(16.dp))
+        Newsfeed()
+    }
+}
+
+@Composable
+fun Newsfeed() {
+    Text(
+        "News",
+        style = MaterialTheme.typography.titleLarge
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(3) {
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(8.dp).height(96.dp)
+                ) {
+                    val colorScheme = MaterialTheme.colorScheme
+                    Canvas(
+                        modifier = Modifier.size(96.dp).align(Alignment.CenterVertically)
+                    ) {
+                        drawRoundRect(
+                            colorScheme.primaryContainer
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column(
+                        modifier = Modifier.fillMaxHeight()
+                    ) {
+                        Text(
+                            "Headline",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        Text(
+                            "Description",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Row {
+                            Icon(
+                                Icons.Default.AddCircleOutline,
+                                null
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Today · 2 min read")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(
+                                Icons.Default.Flag,
+                                null
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ShortcutsRow() {
+    Text(
+        "Shortcuts",
+        style = MaterialTheme.typography.titleLarge
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(5) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                val colorScheme = MaterialTheme.colorScheme
+                Canvas(
+                    modifier = Modifier.size(84.dp)
+                ) {
+                    drawCircle(
+                        colorScheme.primaryContainer
+                    )
+                }
+                Text(
+                    "Example",
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
     }
 }
 
