@@ -42,10 +42,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -425,9 +428,9 @@ fun HomeScreen() {
                 style = MaterialTheme.typography.headlineLarge
             )
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         ShortcutsRow()
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         Newsfeed()
     }
 }
@@ -461,23 +464,30 @@ fun Newsfeed() {
                     Column(
                         modifier = Modifier.fillMaxHeight()
                     ) {
-                        Text(
-                            "Headline",
-                            style = MaterialTheme.typography.titleLarge
-                        )
+                        Row {
+                            Icon(
+                                Icons.Default.Newspaper,
+                                null
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Headline",
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        }
                         Text(
                             "Description",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Row {
+                            Text("Today · 2 min read")
+                            Spacer(modifier = Modifier.weight(1f))
                             Icon(
-                                Icons.Default.AddCircleOutline,
+                                Icons.Default.BookmarkBorder,
                                 null
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Today · 2 min read")
-                            Spacer(modifier = Modifier.weight(1f))
                             Icon(
                                 Icons.Default.Flag,
                                 null
