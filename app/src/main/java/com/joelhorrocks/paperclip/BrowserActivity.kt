@@ -61,6 +61,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults.Container
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -109,8 +110,11 @@ class MainActivity : ComponentActivity() {
             PaperclipTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     val state by browserViewModel.uiState.collectAsStateWithLifecycle()
+                    val focusManager = LocalFocusManager.current
                     Box(
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding).clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
+                            focusManager.clearFocus()
+                        }
                     ) {
                         Column(
                             modifier = Modifier
@@ -209,7 +213,7 @@ fun NavBarContainer(
                 orientation = Orientation.Vertical
             )
             // TODO: rounded top corners once navbar hiding when scrolling is done
-            .background(MaterialTheme.colorScheme.surface)
+            .background(MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp))
     ) {
         NavBar(url, updateUrl, submitUrl, goBack, createTab)
         Box(modifier = Modifier.height(348.dp).padding(start = 4.dp, end = 4.dp).graphicsLayer { alpha = ((1 - (anchoredDraggableState.offset / heightPx)).coerceAtMost(0.2f) / 0.2f) }) {
