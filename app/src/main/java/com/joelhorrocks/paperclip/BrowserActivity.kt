@@ -15,6 +15,7 @@ import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircleOutline
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
@@ -50,6 +52,7 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -71,6 +74,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -79,6 +83,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
@@ -93,6 +98,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
 import kotlin.math.roundToInt
@@ -131,23 +137,10 @@ class MainActivity : ComponentActivity() {
                                 browserViewModel.goBack()
                             }
                         }
-                        var drawerOpen by remember { mutableFloatStateOf(0f) }
-                        // TODO: tap background to close drawer
-                        if(drawerOpen != 0f) {
-                            Box(
-                                modifier = Modifier.fillMaxSize().background(Color(0xff000000).copy(alpha = drawerOpen / 2))
-                            )
-                        }
-                        Box(
-                            modifier = Modifier.align(Alignment.BottomCenter)
-                        ) {
                             NavBarContainer(
                                 state.currentTabIndex,
                                 state.tabs,
                                 state.navBarText,
-                                updateDrawerPercentage = { state ->
-                                    drawerOpen = state
-                                },
                                 updateUrl = { url ->
                                     browserViewModel.updateUrl(url)
                                 },
@@ -167,7 +160,6 @@ class MainActivity : ComponentActivity() {
                                     browserViewModel.closeTab(index)
                                 }
                             )
-                        }
                     }
                 }
             }
@@ -180,7 +172,6 @@ fun NavBarContainer(
     currentTabIndex: Int?,
     tabs: List<TabController.Tab>,
     url: String,
-    updateDrawerPercentage: (state: Float) -> Unit,
     updateUrl: (url: String) -> Unit,
     submitUrl: () -> Unit,
     goBack: () -> Unit,
@@ -189,6 +180,7 @@ fun NavBarContainer(
     closeTab: (index: Int) -> Unit
 ) {
     val heightPx = with(LocalDensity.current) { 348.dp.toPx() }
+    val scope = rememberCoroutineScope()
     val anchoredDraggableState = remember { AnchoredDraggableState(
         initialValue = DragAnchors.Start,
         anchors = DraggableAnchors {
@@ -196,91 +188,131 @@ fun NavBarContainer(
             DragAnchors.End at 0f
         }
     ) }
-    LaunchedEffect(anchoredDraggableState) {
-        snapshotFlow { (1 - (anchoredDraggableState.offset / heightPx)) }
-            .distinctUntilChanged()
-            .collect { state ->
-                updateDrawerPercentage(state)
-            }
-    }
-    Column(
-        modifier = Modifier
-            .offset {
-                IntOffset(
-                    0,
-                    anchoredDraggableState.requireOffset().roundToInt()
-                )
-            }
-            .anchoredDraggable(
-                state = anchoredDraggableState,
-                orientation = Orientation.Vertical
-            )
-            // TODO: rounded top corners once navbar hiding when scrolling is done
-            .background(MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp))
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        NavBar(url, updateUrl, submitUrl, goBack, createTab)
-        Box(modifier = Modifier.height(348.dp).padding(start = 4.dp, end = 4.dp).graphicsLayer { alpha = ((1 - (anchoredDraggableState.offset / heightPx)).coerceAtMost(0.2f) / 0.2f) }) {
-            LazyHorizontalGrid(rows = GridCells.Fixed(2)) {
-                items(tabs.size) { index ->
-                    val tab = tabs[index]
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                        ),
-                        border = BorderStroke(1.dp, Color.Black),
-                        modifier = Modifier.width(180.dp).padding(4.dp).clip(CardDefaults.shape).clickable {
-                            selectTab(index)
-                        }
+        if(anchoredDraggableState.offset < heightPx) {
+            Box(
+                modifier = Modifier.fillMaxSize()
+                    .background(Color(0xff000000).copy(alpha = (1 - anchoredDraggableState.offset / heightPx) / 2))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
                     ) {
-                        Column {
-                            Row(
-                                modifier = Modifier.background(
-                                    if(currentTabIndex == index)
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.surface
-                                ).fillMaxWidth().padding(8.dp)
+                        scope.launch {
+                            anchoredDraggableState.animateTo(DragAnchors.Start)
+                        }
+                    }
+            )
+        }
+        Column(
+            modifier = Modifier
+                // TODO: rounded top corners once navbar hiding when scrolling is done
+                .align(Alignment.BottomCenter)
+                .offset {
+                    IntOffset(
+                        0,
+                        anchoredDraggableState.requireOffset().roundToInt()
+                    )
+                }
+        ) {
+            // TODO: move this to be fixed on homepage?
+            // TODO: only show on first swipe
+            Box(
+                modifier = Modifier
+                    .graphicsLayer { alpha = ((anchoredDraggableState.offset / heightPx) * 2 - 1).coerceAtLeast(0f) }
+                    .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(8.dp))
+                    .padding(8.dp)
+                    .align(Alignment.CenterHorizontally)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(Icons.Default.ArrowDropUp, null)
+                    Text("Swipe up on toolbar for tabs")
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Column(
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp))
+                    .anchoredDraggable(
+                        state = anchoredDraggableState,
+                        orientation = Orientation.Vertical
+                    )
+            ) {
+                NavBar(url, updateUrl, submitUrl, goBack, createTab)
+                Box(
+                    modifier = Modifier.height(348.dp).padding(start = 4.dp, end = 4.dp)
+                        .graphicsLayer {
+                            alpha =
+                                ((1 - (anchoredDraggableState.offset / heightPx)).coerceAtMost(0.2f) / 0.2f)
+                        }) {
+                    LazyHorizontalGrid(rows = GridCells.Fixed(2)) {
+                        items(tabs.size) { index ->
+                            val tab = tabs[index]
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                ),
+                                border = BorderStroke(1.dp, Color.Black),
+                                modifier = Modifier.width(180.dp).padding(4.dp)
+                                    .clip(CardDefaults.shape)
+                                    .clickable {
+                                        selectTab(index)
+                                    }
                             ) {
-                                Text(
-                                    text = if(tab.currentUrl == "") "Homepage" else tab.currentUrl,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    overflow = TextOverflow.Ellipsis,
-                                    fontSize = 14.sp,
-                                    maxLines = 1,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                IconButton(
-                                    onClick = {
-                                        closeTab(index)
-                                    },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Close",
-                                        tint = MaterialTheme.colorScheme.onSurface
+                                Column {
+                                    Row(
+                                        modifier = Modifier.background(
+                                            if (currentTabIndex == index)
+                                                MaterialTheme.colorScheme.primaryContainer
+                                            else
+                                                MaterialTheme.colorScheme.surface
+                                        ).fillMaxWidth().padding(8.dp)
+                                    ) {
+                                        Text(
+                                            text = if (tab.currentUrl == "") "Homepage" else tab.currentUrl,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            overflow = TextOverflow.Ellipsis,
+                                            fontSize = 14.sp,
+                                            maxLines = 1,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        IconButton(
+                                            onClick = {
+                                                closeTab(index)
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Close",
+                                                tint = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                    HorizontalDivider(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = Color.Black,
+                                        thickness = 1.dp,
                                     )
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Image,
+                                            contentDescription = "Tab Screenshot Icon",
+                                            modifier = Modifier
+                                                .padding(8.dp)
+                                                .size(48.dp)
+                                                .align(Alignment.Center),
+                                            tint = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                 }
-                            }
-                            HorizontalDivider(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = Color.Black,
-                                thickness = 1.dp,
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Image,
-                                    contentDescription = "Tab Screenshot Icon",
-                                    modifier = Modifier
-                                        .padding(8.dp)
-                                        .size(48.dp)
-                                        .align(Alignment.Center),
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
                             }
                         }
                     }
