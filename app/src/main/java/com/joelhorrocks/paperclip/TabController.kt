@@ -75,7 +75,7 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
                 tabs.filterIndexed { i, _ -> i != 1 }
             }
             return
-        } else if(_currentTabIndex.value!! >= index) {
+        } else if(_currentTabIndex.value!! >= index && index > 0) {
             _currentTabIndex.value = _currentTabIndex.value!! - 1
         }
 

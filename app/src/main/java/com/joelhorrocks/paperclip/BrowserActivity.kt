@@ -1,6 +1,7 @@
 package com.joelhorrocks.paperclip
 
 import android.content.res.Configuration
+import android.graphics.drawable.Icon
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -11,6 +12,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
@@ -21,6 +23,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -37,12 +40,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.AttachFile
@@ -50,9 +55,11 @@ import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -66,6 +73,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.OutlinedTextFieldDefaults.Container
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
@@ -79,9 +87,11 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -271,6 +281,7 @@ fun NavBarContainer(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(Icons.Default.ArrowDropUp, null)
+                        // TODO: blocks navbar
                         Text("Swipe up on toolbar for tabs")
                     }
                 }
@@ -318,23 +329,24 @@ fun NavBarContainer(
                                                 else
                                                     MaterialTheme.colorScheme.surface
                                             )
-                                            .fillMaxWidth()
-                                            .padding(8.dp)
+                                            .fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
                                             text = if (tab.currentUrl == "") "Homepage" else tab.currentUrl,
                                             color = MaterialTheme.colorScheme.onSurface,
                                             overflow = TextOverflow.Ellipsis,
-                                            fontSize = 14.sp,
+                                            fontSize = 16.sp,
                                             maxLines = 1,
-                                            modifier = Modifier.weight(1f)
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .padding(8.dp)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         IconButton(
                                             onClick = {
                                                 closeTab(index)
-                                            },
-                                            modifier = Modifier.size(24.dp)
+                                            }
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
@@ -396,7 +408,7 @@ fun NavBar(
                 updateUrl(it)
             },
             modifier = Modifier
-                .height(40.dp)
+                .height(48.dp)
                 .weight(1f),
             interactionSource = interactionSource,
             singleLine = true,
@@ -446,8 +458,7 @@ fun NavBar(
         var moreMenuExpanded by remember { mutableStateOf(false) }
         Box {
             IconButton(
-                onClick = { moreMenuExpanded = !moreMenuExpanded },
-                modifier = Modifier.size(40.dp)
+                onClick = { moreMenuExpanded = !moreMenuExpanded }
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
@@ -500,10 +511,11 @@ fun Content(geckoSession: GeckoSession?, currentUrl: String) {
 @Composable
 fun HomeScreen() {
     Column(
-        modifier = Modifier.padding(8.dp)
+        modifier = Modifier.padding(vertical = 8.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 8.dp)
         ) {
             Icon(
                 Icons.Default.AttachFile,
@@ -518,75 +530,100 @@ fun HomeScreen() {
                 style = MaterialTheme.typography.headlineLarge
             )
         }
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.weight(1f))
+        Newsfeed()
         ShortcutsRow()
         Spacer(modifier = Modifier.height(24.dp))
-        Newsfeed()
     }
 }
 
 @Composable
 fun Newsfeed() {
-    Text(
-        "News",
-        style = MaterialTheme.typography.titleLarge
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Column(
+        modifier = Modifier.padding(horizontal = 8.dp)
     ) {
-        items(3) {
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .height(96.dp)
+        Text(
+            "News",
+            style = MaterialTheme.typography.titleLarge
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(3) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable {  }
                 ) {
-                    val colorScheme = MaterialTheme.colorScheme
-                    Canvas(
+                    Row(
                         modifier = Modifier
-                            .size(96.dp)
-                            .align(Alignment.CenterVertically)
+                            .padding(8.dp)
+                            .height(96.dp)
                     ) {
-                        drawRoundRect(
-                            colorScheme.primaryContainer
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(
-                        modifier = Modifier.fillMaxHeight()
-                    ) {
-                        Row {
-                            Icon(
-                                Icons.Default.Newspaper,
-                                null
+                        val colorScheme = MaterialTheme.colorScheme
+                        Canvas(
+                            modifier = Modifier
+                                .size(96.dp)
+                                .align(Alignment.CenterVertically)
+                        ) {
+                            drawRoundRect(
+                                colorScheme.primaryContainer
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(
+                            modifier = Modifier.fillMaxHeight()
+                        ) {
+                            Row {
+                                Icon(
+                                    Icons.Default.Newspaper,
+                                    null
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "Headline",
+                                    style = MaterialTheme.typography.titleLarge
+                                )
+                            }
                             Text(
-                                "Headline",
-                                style = MaterialTheme.typography.titleLarge
+                                "Description",
+                                style = MaterialTheme.typography.bodyMedium
                             )
-                        }
-                        Text(
-                            "Description",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Row {
-                            Text("Today · 2 min read")
                             Spacer(modifier = Modifier.weight(1f))
-                            Icon(
-                                Icons.Default.BookmarkBorder,
-                                null
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                Icons.Default.Flag,
-                                null
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Today · 2 min read")
+                                Spacer(modifier = Modifier.weight(1f))
+                                IconButton(onClick = { }) {
+                                    Icon(
+                                        Icons.Default.BookmarkBorder,
+                                        null
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                IconButton(onClick = { }) {
+                                    Icon(
+                                        Icons.Default.Flag,
+                                        null
+                                    )
+                                }
+                            }
                         }
+                    }
+                }
+            }
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    // TODO: left-handed mode, consider LTR/RTL layout
+                    TextButton(onClick = { }) {
+                        Text("See more")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "",
+                        )
                     }
                 }
             }
@@ -596,32 +633,53 @@ fun Newsfeed() {
 
 @Composable
 fun ShortcutsRow() {
-    Text(
-        "Shortcuts",
-        style = MaterialTheme.typography.titleLarge
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(5) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                val colorScheme = MaterialTheme.colorScheme
-                Canvas(
-                    modifier = Modifier.size(84.dp)
-                ) {
-                    drawCircle(
-                        colorScheme.primaryContainer
-                    )
-                }
-                Text(
-                    "Example",
-                    style = MaterialTheme.typography.labelLarge
-                )
+    Column {
+        Text(
+            "Shortcuts",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(horizontal = 8.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp)
+        ) {
+            items(5) {
+                Shortcut(Icons.Default.Web, "Example") {}
+            }
+            item {
+                Shortcut(Icons.Default.Add, "") {}
             }
         }
+    }
+}
+
+@Composable
+fun Shortcut(icon: ImageVector, text: String, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        val colorScheme = MaterialTheme.colorScheme
+        Box(
+            modifier = Modifier.size(84.dp).drawBehind {
+                drawCircle(
+                    colorScheme.primaryContainer
+                )
+            }.clip(CircleShape).clickable { onClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon, null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+        Text(
+            text,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { onClick() }
+        )
     }
 }
 
