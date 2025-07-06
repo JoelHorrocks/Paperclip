@@ -1,6 +1,15 @@
 package com.joelhorrocks.paperclip
 
 import android.content.Context
+import android.preference.PreferenceDataStore
+import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
+import androidx.datastore.dataStoreFile
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
+import com.joelhorrocks.paperclip.settings.SettingsRepository
+import com.joelhorrocks.paperclip.settings.SettingsRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -15,5 +24,22 @@ class AppModule {
     @Singleton
     fun provideGeckoRuntimeProvider(@ApplicationContext appContext: Context): GeckoRuntimeProvider {
         return GeckoRuntimeProvider(appContext)
+    }
+
+    @Provides
+    @Singleton
+    fun provideDataStore(@ApplicationContext appContext: Context): DataStore<Preferences> {
+        return PreferenceDataStoreFactory.create(
+            corruptionHandler = ReplaceFileCorruptionHandler(
+                produceNewData = { emptyPreferences() }
+            ),
+            produceFile = { appContext.dataStoreFile("user_prefs.preferences_pb") }
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideSettingsRepository(dataStore: DataStore<Preferences>): SettingsRepository {
+        return SettingsRepositoryImpl(dataStore)
     }
 }

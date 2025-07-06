@@ -8,6 +8,9 @@ import dagger.hilt.android.HiltAndroidApp
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
 import android.os.Process
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 
 @HiltAndroidApp
 class BrowserApplication: Application() {

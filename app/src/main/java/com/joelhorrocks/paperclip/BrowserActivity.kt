@@ -1,5 +1,6 @@
 package com.joelhorrocks.paperclip
 
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -22,6 +23,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,10 +44,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Flag
@@ -52,7 +53,6 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -71,7 +71,6 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -83,9 +82,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
@@ -121,26 +120,45 @@ class MainActivity : ComponentActivity() {
                     val state by browserViewModel.uiState.collectAsStateWithLifecycle()
                     val focusManager = LocalFocusManager.current
                     Box(
-                        modifier = Modifier.padding(innerPadding).clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
-                            focusManager.clearFocus()
-                        }
+                        modifier = Modifier
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }) {
+                                focusManager.clearFocus()
+                            }
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .padding(bottom = 52.dp)
-                                .fillMaxHeight()
+                        Box(
+                            modifier = Modifier.padding(innerPadding)
                         ) {
-                            Box {
-                                Content(state.currentTab?.geckoSession, state.currentUrl)
-                            }
-                            BackHandler {
-                                browserViewModel.goBack()
+                            Column(
+                                modifier = Modifier
+                                    .padding(bottom = 52.dp)
+                                    .fillMaxHeight()
+                            ) {
+                                Box {
+                                    Content(state.currentTab?.geckoSession, state.currentUrl)
+                                }
+                                BackHandler {
+                                    browserViewModel.goBack()
+                                }
                             }
                         }
+                        val layoutDirection = LocalLayoutDirection.current
+                        Box(
+                            modifier = Modifier.padding(
+                                bottom = innerPadding.calculateBottomPadding(),
+                                start = innerPadding.calculateStartPadding(layoutDirection),
+                                end = innerPadding.calculateEndPadding(layoutDirection)
+                            )
+                        ) {
                             NavBarContainer(
                                 state.currentTabIndex,
                                 state.tabs,
                                 state.navBarText,
+                                state.showToolbarTooltip,
+                                setShowToolbarTooltip = { shown ->
+                                    browserViewModel.setShowToolbarTooltip(shown)
+                                },
                                 updateUrl = { url ->
                                     browserViewModel.updateUrl(url)
                                 },
@@ -160,6 +178,7 @@ class MainActivity : ComponentActivity() {
                                     browserViewModel.closeTab(index)
                                 }
                             )
+                        }
                     }
                 }
             }
@@ -172,6 +191,8 @@ fun NavBarContainer(
     currentTabIndex: Int?,
     tabs: List<TabController.Tab>,
     url: String,
+    showToolbarTooltip: Boolean,
+    setShowToolbarTooltip: (shown: Boolean) -> Unit,
     updateUrl: (url: String) -> Unit,
     submitUrl: () -> Unit,
     goBack: () -> Unit,
@@ -181,20 +202,32 @@ fun NavBarContainer(
 ) {
     val heightPx = with(LocalDensity.current) { 348.dp.toPx() }
     val scope = rememberCoroutineScope()
-    val anchoredDraggableState = remember { AnchoredDraggableState(
-        initialValue = DragAnchors.Start,
-        anchors = DraggableAnchors {
-            DragAnchors.Start at heightPx
-            DragAnchors.End at 0f
+    val anchoredDraggableState = remember {
+        AnchoredDraggableState(
+            initialValue = DragAnchors.Start,
+            anchors = DraggableAnchors {
+                DragAnchors.Start at heightPx
+                DragAnchors.End at 0f
+            }
+        )
+    }
+    if (showToolbarTooltip) {
+        LaunchedEffect(anchoredDraggableState) {
+            snapshotFlow { anchoredDraggableState.currentValue == DragAnchors.Start }
+                .distinctUntilChanged()
+                .collect {
+                    setShowToolbarTooltip(it)
+                }
         }
-    ) }
+    }
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        if(anchoredDraggableState.offset < heightPx) {
+        if (anchoredDraggableState.offset < heightPx) {
             Box(
-                modifier = Modifier.fillMaxSize()
-                    .background(Color(0xff000000).copy(alpha = (1 - anchoredDraggableState.offset / heightPx) / 2))
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = (1 - anchoredDraggableState.offset / heightPx) / 2))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -218,18 +251,28 @@ fun NavBarContainer(
         ) {
             // TODO: move this to be fixed on homepage?
             // TODO: only show on first swipe
-            Box(
-                modifier = Modifier
-                    .graphicsLayer { alpha = ((anchoredDraggableState.offset / heightPx) * 2 - 1).coerceAtLeast(0f) }
-                    .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(8.dp))
-                    .padding(8.dp)
-                    .align(Alignment.CenterHorizontally)
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+            if (showToolbarTooltip) {
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer {
+                            alpha =
+                                ((anchoredDraggableState.offset / heightPx) * 2 - 1).coerceAtLeast(
+                                    0f
+                                )
+                        }
+                        .background(
+                            MaterialTheme.colorScheme.surfaceContainer,
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(8.dp)
+                        .align(Alignment.CenterHorizontally)
                 ) {
-                    Icon(Icons.Default.ArrowDropUp, null)
-                    Text("Swipe up on toolbar for tabs")
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.ArrowDropUp, null)
+                        Text("Swipe up on toolbar for tabs")
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -243,7 +286,9 @@ fun NavBarContainer(
             ) {
                 NavBar(url, updateUrl, submitUrl, goBack, createTab)
                 Box(
-                    modifier = Modifier.height(348.dp).padding(start = 4.dp, end = 4.dp)
+                    modifier = Modifier
+                        .height(348.dp)
+                        .padding(start = 4.dp, end = 4.dp)
                         .graphicsLayer {
                             alpha =
                                 ((1 - (anchoredDraggableState.offset / heightPx)).coerceAtMost(0.2f) / 0.2f)
@@ -256,7 +301,9 @@ fun NavBarContainer(
                                     containerColor = MaterialTheme.colorScheme.surface,
                                 ),
                                 border = BorderStroke(1.dp, Color.Black),
-                                modifier = Modifier.width(180.dp).padding(4.dp)
+                                modifier = Modifier
+                                    .width(180.dp)
+                                    .padding(4.dp)
                                     .clip(CardDefaults.shape)
                                     .clickable {
                                         selectTab(index)
@@ -264,12 +311,15 @@ fun NavBarContainer(
                             ) {
                                 Column {
                                     Row(
-                                        modifier = Modifier.background(
-                                            if (currentTabIndex == index)
-                                                MaterialTheme.colorScheme.primaryContainer
-                                            else
-                                                MaterialTheme.colorScheme.surface
-                                        ).fillMaxWidth().padding(8.dp)
+                                        modifier = Modifier
+                                            .background(
+                                                if (currentTabIndex == index)
+                                                    MaterialTheme.colorScheme.primaryContainer
+                                                else
+                                                    MaterialTheme.colorScheme.surface
+                                            )
+                                            .fillMaxWidth()
+                                            .padding(8.dp)
                                     ) {
                                         Text(
                                             text = if (tab.currentUrl == "") "Homepage" else tab.currentUrl,
@@ -324,7 +374,13 @@ fun NavBarContainer(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NavBar(url: String, updateUrl: (url: String) -> Unit, submitUrl: () -> Unit, goBack: () -> Unit, createTab: () -> Unit) {
+fun NavBar(
+    url: String,
+    updateUrl: (url: String) -> Unit,
+    submitUrl: () -> Unit,
+    goBack: () -> Unit,
+    createTab: () -> Unit
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -435,7 +491,7 @@ fun NavBar(url: String, updateUrl: (url: String) -> Unit, submitUrl: () -> Unit,
 
 @Composable
 fun Content(geckoSession: GeckoSession?, currentUrl: String) {
-    when(currentUrl) {
+    when (currentUrl) {
         "" -> HomeScreen()
         else -> BrowserScreen(geckoSession)
     }
@@ -449,10 +505,12 @@ fun HomeScreen() {
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
+            Icon(
                 Icons.Default.AttachFile,
                 contentDescription = null,
-                modifier = Modifier.size(32.dp).rotate(45f)
+                modifier = Modifier
+                    .size(32.dp)
+                    .rotate(45f)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
@@ -482,11 +540,15 @@ fun Newsfeed() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(8.dp).height(96.dp)
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .height(96.dp)
                 ) {
                     val colorScheme = MaterialTheme.colorScheme
                     Canvas(
-                        modifier = Modifier.size(96.dp).align(Alignment.CenterVertically)
+                        modifier = Modifier
+                            .size(96.dp)
+                            .align(Alignment.CenterVertically)
                     ) {
                         drawRoundRect(
                             colorScheme.primaryContainer
