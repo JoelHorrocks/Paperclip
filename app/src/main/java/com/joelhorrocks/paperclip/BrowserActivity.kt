@@ -295,7 +295,11 @@ fun NavBarContainer(
                         orientation = Orientation.Vertical
                     )
             ) {
-                NavBar(url, updateUrl, submitUrl, goBack, createTab)
+                NavBar(url, updateUrl, submitUrl, goBack, createTab, collapseDrawer = {
+                    scope.launch {
+                        anchoredDraggableState.animateTo(DragAnchors.Start)
+                    }
+                })
                 Box(
                     modifier = Modifier
                         .height(348.dp)
@@ -391,7 +395,8 @@ fun NavBar(
     updateUrl: (url: String) -> Unit,
     submitUrl: () -> Unit,
     goBack: () -> Unit,
-    createTab: () -> Unit
+    createTab: () -> Unit,
+    collapseDrawer: () -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -416,6 +421,7 @@ fun NavBar(
                 onGo = {
                     submitUrl()
                     focusManager.clearFocus()
+                    collapseDrawer()
                 }
             ),
             keyboardOptions = KeyboardOptions.Default.copy(
