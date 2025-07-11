@@ -1,7 +1,6 @@
 package com.joelhorrocks.paperclip
 
 import android.content.Context
-import android.preference.PreferenceDataStore
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.dataStoreFile

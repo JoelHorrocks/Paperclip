@@ -3,6 +3,8 @@ package com.joelhorrocks.paperclip
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import org.mozilla.geckoview.AllowOrDeny
+import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import java.util.UUID
@@ -32,12 +34,12 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
         browserEngine.createSession().let { session ->
             _tabs.value = listOf(Tab(geckoSession = session))
             session.navigationDelegate = createNavigationDelegate()
-            //session.loadUri("")
+            session.loadUri("about:home")
             _currentTabIndex.value = 0
         }
     }
 
-    private fun createNavigationDelegate() = object : NavigationDelegate {
+    private fun createNavigationDelegate() = object: NavigationDelegate {
         override fun onLocationChange(
             session: GeckoSession,
             url: String?,
@@ -52,6 +54,22 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
                     else tab
                 }
             }
+        }
+
+        // TODO: consider duplication here, sometimes onLoadRequest doesn't seem to call (load about:home, then about:buildconfig, navigating back does not trigger onLoadRequest)
+        // TODO: makes sure that reloading URL on same page loads full URL rather than keeping what is typed in navbar, but do we need this duplication or should we insert updated URL ourselves?
+        override fun onLoadRequest(
+            session: GeckoSession,
+            request: NavigationDelegate.LoadRequest
+        ): GeckoResult<AllowOrDeny>? {
+            _tabs.update { tabs ->
+                tabs.map { tab ->
+                    if (tab.geckoSession == session) tab.copy(currentUrl = request.uri)
+                    else tab
+                }
+            }
+
+            return super.onLoadRequest(session, request)
         }
     }
 
@@ -75,7 +93,7 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
                 tabs.filterIndexed { i, _ -> i != 1 }
             }
             return
-        } else if(_currentTabIndex.value!! >= index && index > 0) {
+        } else if(_currentTabIndex.value!! >= index && (index > 0 || _currentTabIndex.value!! > 0)) {
             _currentTabIndex.value = _currentTabIndex.value!! - 1
         }
 
@@ -90,7 +108,7 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
                 it + Tab(geckoSession = session)
             }
             session.navigationDelegate = createNavigationDelegate()
-            //session.loadUri("about:buildconfig")
+            session.loadUri("about:home")
             _currentTabIndex.value = _tabs.value.size - 1
         }
     }

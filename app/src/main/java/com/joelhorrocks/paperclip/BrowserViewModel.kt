@@ -1,8 +1,5 @@
 package com.joelhorrocks.paperclip
 
-import android.util.Log
-import androidx.datastore.dataStore
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joelhorrocks.paperclip.settings.SettingsRepository
@@ -11,7 +8,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,14 +17,14 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
     data class BrowserUiState(
         val tabs: List<TabController.Tab> = emptyList(),
         val currentTabIndex: Int? = 0,
-        // TODO: consolidate with GeckoView so this instead comes from currentTab?
-        val currentUrl: String = "",
         val navBarText: String = "",
         val isLoading: Boolean = false,
         val showToolbarTooltip: Boolean = false
     ) {
         val currentTab: TabController.Tab?
             get() = if(currentTabIndex != null) tabs.getOrNull(currentTabIndex) else null
+        val currentUrl: String
+            get() = if(currentTabIndex != null) tabs.getOrNull(currentTabIndex)?.currentUrl ?: "" else ""
     }
 
     private val _uiState = MutableStateFlow(BrowserUiState())
@@ -45,8 +41,9 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
                     it.copy(
                         tabs = tabs,
                         currentTabIndex = currentIndex,
-                        currentUrl = currentIndex?.let { index -> tabs[index].currentUrl } ?: "",
-                        navBarText = currentIndex?.let { index -> tabs[index].currentUrl } ?: "",
+                        navBarText = currentIndex?.let {
+                            index -> if(tabs[index].currentUrl == "about:home") "" else tabs[index].currentUrl
+                        } ?: "",
                         isLoading = currentIndex?.let { index -> tabs[index].isLoading } ?: false,
                         showToolbarTooltip = showDrawerTooltip
                     )
@@ -55,6 +52,8 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
         }
     }
 
+    // TODO: when clicking out of toolbar, text should return to currentUrl
+    // TODO: rename function to reflect changing navbar text
     fun updateUrl(url: String) {
         _uiState.update {
             it.copy(
@@ -65,9 +64,24 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
 
     fun submitUrl() {
         val currentTab = _uiState.value.currentTab
+        val navBarText = _uiState.value.navBarText
+        _uiState.update {
+            it.copy(
+                navBarText = ""
+            )
+        }
         if(currentTab != null) {
             viewModelScope.launch {
-                tabController.loadUrl(currentTab, _uiState.value.navBarText)
+                tabController.loadUrl(currentTab, navBarText)
+            }
+        }
+    }
+
+    fun loadUrl(url: String) {
+        val currentTab = _uiState.value.currentTab
+        if(currentTab != null) {
+            viewModelScope.launch {
+                tabController.loadUrl(currentTab, url)
             }
         }
     }

@@ -17,6 +17,8 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url = uri("https://maven.mozilla.org/maven2") }
+        // TODO: remove once navigation3 is stable
+        maven { url = uri("https://androidx.dev/snapshots/builds/13738694/artifacts/repository") }
     }
 }
 
