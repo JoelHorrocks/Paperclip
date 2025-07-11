@@ -336,7 +336,7 @@ fun NavBarContainer(
                                     ) {
                                         // TODO: page URL
                                         Text(
-                                            text = if (tab.currentUrl == "about:homepage") "Homepage" else tab.currentUrl,
+                                            text = if (tab.currentUrl == "about:home") "Homepage" else tab.currentUrl,
                                             color = MaterialTheme.colorScheme.onSurface,
                                             overflow = TextOverflow.Ellipsis,
                                             fontSize = 16.sp,
@@ -492,6 +492,7 @@ fun NavBar(
                 DropdownMenuItem(
                     text = { Text("New Tab") },
                     onClick = {
+                        moreMenuExpanded = false
                         createTab()
                     },
                     leadingIcon = {
@@ -504,6 +505,7 @@ fun NavBar(
                 DropdownMenuItem(
                     text = { Text("Settings") },
                     onClick = {
+                        moreMenuExpanded = false
                         navigate(Screen.Settings)
                     },
                     leadingIcon = {
