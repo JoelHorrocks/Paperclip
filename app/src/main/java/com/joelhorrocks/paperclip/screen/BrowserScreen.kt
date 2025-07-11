@@ -100,6 +100,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joelhorrocks.paperclip.BrowserViewModel
+import com.joelhorrocks.paperclip.HOME_URL
 import com.joelhorrocks.paperclip.Screen
 import com.joelhorrocks.paperclip.TabController
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
@@ -138,7 +139,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                     ) {
                         Box {
                             when (state.currentUrl) {
-                                "about:home" -> HomeScreen(navigate, loadUrl = { browserViewModel.loadUrl(it) })
+                                HOME_URL -> HomeScreen(navigate, loadUrl = { browserViewModel.loadUrl(it) })
                                 else -> BrowserScreen(state.currentTab?.geckoSession)
                             }
                         }
@@ -195,7 +196,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
 fun NavBarContainer(
     currentTabIndex: Int?,
     tabs: List<TabController.Tab>,
-    url: String,
+    navBarText: String,
     showToolbarTooltip: Boolean,
     navigate: (screen: Screen) -> Unit,
     setShowToolbarTooltip: (shown: Boolean) -> Unit,
@@ -292,7 +293,7 @@ fun NavBarContainer(
                         orientation = Orientation.Vertical
                     )
             ) {
-                NavBar(url, updateUrl, submitUrl, goBack, createTab, navigate, collapseDrawer = {
+                NavBar(navBarText, updateUrl, submitUrl, goBack, createTab, navigate, collapseDrawer = {
                     scope.launch {
                         anchoredDraggableState.animateTo(DragAnchors.Start)
                     }
@@ -390,7 +391,7 @@ fun NavBarContainer(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavBar(
-    url: String,
+    navBarText: String,
     updateUrl: (url: String) -> Unit,
     submitUrl: () -> Unit,
     goBack: () -> Unit,
@@ -408,8 +409,9 @@ fun NavBar(
         val interactionSource = remember { MutableInteractionSource() }
         val focusManager = LocalFocusManager.current
         BasicTextField(
-            value = url,
+            value = navBarText,
             onValueChange = {
+                // TODO: rename? 'url' was renamed to 'navBarText' as text in navbar may not be an URL and to avoid confusion with current tab URL
                 updateUrl(it)
             },
             modifier = Modifier
@@ -430,7 +432,7 @@ fun NavBar(
             )
         ) { innerTextField ->
             OutlinedTextFieldDefaults.DecorationBox(
-                value = url,
+                value = navBarText,
                 innerTextField = innerTextField,
                 enabled = true,
                 singleLine = true,
@@ -549,7 +551,7 @@ fun HomeScreen(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Uni
         Spacer(modifier = Modifier.weight(1f))
         Newsfeed(navigate, loadUrl)
         // TODO: landscape mode issue
-        ShortcutsRow()
+        ShortcutsRow(loadUrl)
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
@@ -657,7 +659,7 @@ fun Newsfeed(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit)
 }
 
 @Composable
-fun ShortcutsRow() {
+fun ShortcutsRow(loadUrl: (url: String) -> Unit) {
     Column {
         Text(
             "Shortcuts",
@@ -670,7 +672,9 @@ fun ShortcutsRow() {
             contentPadding = PaddingValues(horizontal = 8.dp)
         ) {
             items(5) {
-                Shortcut(Icons.Default.Web, "Example") {}
+                Shortcut(Icons.Default.Web, "Example") {
+                    loadUrl("about:buildconfig")
+                }
             }
             item {
                 Shortcut(Icons.Default.Add, "") {}

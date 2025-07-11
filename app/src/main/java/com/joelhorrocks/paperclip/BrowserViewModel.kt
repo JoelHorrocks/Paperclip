@@ -42,7 +42,7 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
                         tabs = tabs,
                         currentTabIndex = currentIndex,
                         navBarText = currentIndex?.let {
-                            index -> if(tabs[index].currentUrl == "about:home") "" else tabs[index].currentUrl
+                            index -> if(tabs[index].currentUrl == HOME_URL) "" else tabs[index].currentUrl
                         } ?: "",
                         isLoading = currentIndex?.let { index -> tabs[index].isLoading } ?: false,
                         showToolbarTooltip = showDrawerTooltip
