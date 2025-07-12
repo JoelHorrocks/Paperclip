@@ -1,12 +1,21 @@
 package com.joelhorrocks.paperclip
 
+import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
+import org.mozilla.geckoview.GeckoSession.PromptDelegate
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,11 +29,18 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
         val currentUrl: String = ""
     )
 
+    sealed class Prompt {
+        class Alert(val title: String?, val message: String?) : Prompt()
+    }
+
     private val _tabs = MutableStateFlow(listOf<Tab>())
     val tabs = _tabs.asStateFlow()
 
     private val _currentTabIndex = MutableStateFlow<Int?>(null)
     val currentTabIndex = _currentTabIndex.asStateFlow()
+
+    private val _prompts = MutableSharedFlow<Prompt>()
+    val prompts = _prompts.asSharedFlow()
 
     init {
         createInitialTab()
@@ -34,9 +50,23 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
         browserEngine.createSession().let { session ->
             _tabs.value = listOf(Tab(geckoSession = session))
             session.navigationDelegate = createNavigationDelegate()
+            session.promptDelegate = createPromptDelegate()
             session.loadUri(HOME_URL)
             _currentTabIndex.value = 0
         }
+    }
+
+    private fun createPromptDelegate() = object: PromptDelegate {
+        override fun onAlertPrompt(
+            session: GeckoSession,
+            prompt: PromptDelegate.AlertPrompt
+        ): GeckoResult<PromptDelegate.PromptResponse?>? {
+            CoroutineScope(Dispatchers.Main).launch {
+                _prompts.emit(Prompt.Alert(prompt.title, prompt.message))
+            }
+            return super.onAlertPrompt(session, prompt)
+        }
+        // TODO: confirm prompt, send decision back to webpage, etc
     }
 
     private fun createNavigationDelegate() = object: NavigationDelegate {

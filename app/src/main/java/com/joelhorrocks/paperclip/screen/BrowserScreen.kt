@@ -1,6 +1,7 @@
 package com.joelhorrocks.paperclip.screen
 
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -54,6 +55,7 @@ import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Web
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -87,6 +89,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -121,6 +124,19 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
             val state by browserViewModel.uiState.collectAsStateWithLifecycle()
             val focusManager = LocalFocusManager.current
+            var webPrompt by remember { mutableStateOf<TabController.Prompt?>(null) }
+            LaunchedEffect(Unit) {
+                browserViewModel.prompts.collect {
+                    webPrompt = it
+                }
+            }
+            // TODO: handle multiple prompts (store prompts in a list)
+            when(webPrompt) {
+                is TabController.Prompt.Alert -> {
+                    WebAlertPrompt({ webPrompt = null }, (webPrompt as TabController.Prompt.Alert).title!!, (webPrompt as TabController.Prompt.Alert).message!!, Icons.Default.Web)
+                }
+                else -> {}
+            }
             Box(
                 modifier = Modifier
                     .clickable(
@@ -190,7 +206,38 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
     }
 }
 
-
+@Composable
+fun WebAlertPrompt(
+    onDismissRequest: () -> Unit,
+    dialogTitle: String,
+    dialogText: String,
+    icon: ImageVector,
+) {
+    AlertDialog(
+        icon = {
+            Icon(icon, contentDescription = "Example Icon")
+        },
+        title = {
+            Text(text = dialogTitle)
+        },
+        text = {
+            Text(text = dialogText)
+        },
+        onDismissRequest = {
+            onDismissRequest()
+        },
+        confirmButton = { },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    onDismissRequest()
+                }
+            ) {
+                Text("OK")
+            }
+        }
+    )
+}
 
 @Composable
 fun NavBarContainer(

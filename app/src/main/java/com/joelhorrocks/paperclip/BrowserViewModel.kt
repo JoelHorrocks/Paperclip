@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joelhorrocks.paperclip.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
@@ -29,6 +30,8 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
 
     private val _uiState = MutableStateFlow(BrowserUiState())
     val uiState = _uiState.asStateFlow()
+
+    val prompts = tabController.prompts
 
     init {
         viewModelScope.launch {
