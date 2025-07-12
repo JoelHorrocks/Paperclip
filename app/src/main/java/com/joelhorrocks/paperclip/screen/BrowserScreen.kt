@@ -142,6 +142,14 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                             Icons.Default.Web
                         )
                     }
+                    is TabController.Prompt.Button -> {
+                        WebButtonPrompt(
+                            { webPromptQueue.remove(prompt); prompt.onAction(it) },
+                            prompt.title!!,
+                            prompt.message!!,
+                            Icons.Default.Web
+                        )
+                    }
                     else -> {}
                 }
             }
@@ -214,6 +222,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
     }
 }
 
+// TODO: move prompts to own file
 @Composable
 fun WebAlertPrompt(
     onDismissRequest: () -> Unit,
@@ -234,14 +243,54 @@ fun WebAlertPrompt(
         onDismissRequest = {
             onDismissRequest()
         },
-        confirmButton = { },
-        dismissButton = {
+        confirmButton = {
             TextButton(
                 onClick = {
                     onDismissRequest()
                 }
             ) {
                 Text("OK")
+            }
+        },
+        dismissButton = { }
+    )
+}
+
+@Composable
+fun WebButtonPrompt(
+    onAction: (confirm: Boolean) -> Unit,
+    dialogTitle: String,
+    dialogText: String,
+    icon: ImageVector,
+) {
+    AlertDialog(
+        icon = {
+            Icon(icon, contentDescription = "Example Icon")
+        },
+        title = {
+            Text(text = dialogTitle)
+        },
+        text = {
+            Text(text = dialogText)
+        },
+        // TODO: should we handle onDismissRequest and return a dismiss in GeckoView?
+        onDismissRequest = { },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onAction(true)
+                }
+            ) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    onAction(false)
+                }
+            ) {
+                Text("Cancel")
             }
         }
     )

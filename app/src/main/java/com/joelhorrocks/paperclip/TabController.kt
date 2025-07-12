@@ -16,6 +16,8 @@ import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSession.PromptDelegate
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.ButtonPrompt.Type.NEGATIVE
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.ButtonPrompt.Type.POSITIVE
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,6 +33,7 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
 
     sealed class Prompt {
         class Alert(val title: String?, val message: String?) : Prompt()
+        class Button(val title: String?, val message: String?, val onAction: (confirm: Boolean) -> Unit) : Prompt()
     }
 
     private val _tabs = MutableStateFlow(listOf<Tab>())
@@ -67,6 +70,19 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
             return super.onAlertPrompt(session, prompt)
         }
         // TODO: confirm prompt, send decision back to webpage, etc
+        override fun onButtonPrompt(
+            session: GeckoSession,
+            prompt: PromptDelegate.ButtonPrompt
+        ): GeckoResult<PromptDelegate.PromptResponse?>? {
+            val response = GeckoResult<PromptDelegate.PromptResponse?>()
+            CoroutineScope(Dispatchers.Main).launch {
+                _prompts.emit(Prompt.Button(prompt.title, prompt.message) {
+                    val promptResponse = prompt.confirm(if(it) POSITIVE else NEGATIVE)
+                    response.complete(promptResponse)
+                })
+            }
+            return response
+        }
     }
 
     private fun createNavigationDelegate() = object: NavigationDelegate {
