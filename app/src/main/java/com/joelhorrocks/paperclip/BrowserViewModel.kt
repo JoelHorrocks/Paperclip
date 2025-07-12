@@ -68,6 +68,7 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
     fun submitUrl() {
         val currentTab = _uiState.value.currentTab
         val navBarText = _uiState.value.navBarText
+        // TODO: consider this behaviour, in some cases e.g. window.open(), navbar is blank for a period of time
         _uiState.update {
             it.copy(
                 navBarText = ""

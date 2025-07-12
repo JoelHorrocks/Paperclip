@@ -397,6 +397,7 @@ fun NavBarContainer(
                         orientation = Orientation.Vertical
                     )
             ) {
+                // TODO: swipe left and right to switch tab
                 NavBar(navBarText, updateUrl, submitUrl, goBack, createTab, navigate, collapseDrawer = {
                     scope.launch {
                         anchoredDraggableState.animateTo(DragAnchors.Start)
@@ -410,6 +411,7 @@ fun NavBarContainer(
                             alpha =
                                 ((1 - (anchoredDraggableState.offset / heightPx)).coerceAtMost(0.2f) / 0.2f)
                         }) {
+                    // TODO: drag and drop tabs, tab folders
                     LazyHorizontalGrid(rows = GridCells.Fixed(2)) {
                         items(tabs.size) { index ->
                             val tab = tabs[index]

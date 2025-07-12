@@ -33,6 +33,7 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
 
     sealed class Prompt {
         class Alert(val title: String?, val message: String?) : Prompt()
+        // TODO: CompletableDeferred instead of callback?
         class Button(val title: String?, val message: String?, val onAction: (confirm: Boolean) -> Unit) : Prompt()
     }
 
@@ -59,7 +60,7 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
         }
     }
 
-    private fun createPromptDelegate() = object: PromptDelegate {
+    private fun createPromptDelegate(): PromptDelegate = object: PromptDelegate {
         override fun onAlertPrompt(
             session: GeckoSession,
             prompt: PromptDelegate.AlertPrompt
@@ -69,7 +70,7 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
             }
             return super.onAlertPrompt(session, prompt)
         }
-        // TODO: confirm prompt, send decision back to webpage, etc
+
         override fun onButtonPrompt(
             session: GeckoSession,
             prompt: PromptDelegate.ButtonPrompt
@@ -85,7 +86,8 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
         }
     }
 
-    private fun createNavigationDelegate() = object: NavigationDelegate {
+    private fun createNavigationDelegate(): NavigationDelegate = object: NavigationDelegate {
+        // TODO: could background tab location changes incorrectly change navbar location?
         override fun onLocationChange(
             session: GeckoSession,
             url: String?,
@@ -116,6 +118,18 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
             }
 
             return super.onLoadRequest(session, request)
+        }
+
+        override fun onNewSession(session: GeckoSession, uri: String): GeckoResult<GeckoSession?>? {
+            val newSession = GeckoSession().apply {
+                navigationDelegate = createNavigationDelegate()
+            }
+            // TODO: consolidate with createTab?
+            _tabs.update {
+                it + Tab(geckoSession = newSession)
+            }
+            _currentTabIndex.value = _tabs.value.size - 1
+            return GeckoResult.fromValue(newSession)
         }
     }
 
