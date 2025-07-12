@@ -76,7 +76,9 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
         }
         if(currentTab != null) {
             viewModelScope.launch {
-                tabController.loadUrl(currentTab, navBarText)
+                tabController.loadUrl(currentTab,
+                    if(navBarText.startsWith("data:") || ((navBarText.contains(":") || navBarText.contains(".")) && !navBarText.contains(" "))) navBarText else SEARCH_BASE_URI + navBarText
+                )
             }
         }
     }
