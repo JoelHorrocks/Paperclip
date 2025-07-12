@@ -76,6 +76,7 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -124,18 +125,25 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
             val state by browserViewModel.uiState.collectAsStateWithLifecycle()
             val focusManager = LocalFocusManager.current
-            var webPrompt by remember { mutableStateOf<TabController.Prompt?>(null) }
+            val webPromptQueue = remember { mutableStateListOf<TabController.Prompt?>() }
             LaunchedEffect(Unit) {
                 browserViewModel.prompts.collect {
-                    webPrompt = it
+                    webPromptQueue.add(it)
                 }
             }
-            // TODO: handle multiple prompts (store prompts in a list)
-            when(webPrompt) {
-                is TabController.Prompt.Alert -> {
-                    WebAlertPrompt({ webPrompt = null }, (webPrompt as TabController.Prompt.Alert).title!!, (webPrompt as TabController.Prompt.Alert).message!!, Icons.Default.Web)
+            // TODO: cap number of max prompts at once
+            for(prompt in webPromptQueue.reversed()) {
+                when(prompt) {
+                    is TabController.Prompt.Alert -> {
+                        WebAlertPrompt(
+                            { webPromptQueue.remove(prompt) },
+                            prompt.title!!,
+                            prompt.message!!,
+                            Icons.Default.Web
+                        )
+                    }
+                    else -> {}
                 }
-                else -> {}
             }
             Box(
                 modifier = Modifier
