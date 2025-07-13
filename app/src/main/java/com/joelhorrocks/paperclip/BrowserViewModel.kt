@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joelhorrocks.paperclip.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
@@ -14,7 +13,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class BrowserViewModel @Inject constructor(private val tabController: TabController, private val settingsRepository: SettingsRepository): ViewModel() {
+class BrowserViewModel @Inject constructor(
+    private val tabController: TabController,
+    private val settingsRepository: SettingsRepository
+) : ViewModel() {
     data class BrowserUiState(
         val tabs: List<TabController.Tab> = emptyList(),
         val currentTabIndex: Int? = 0,
@@ -23,9 +25,10 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
         val showToolbarTooltip: Boolean = false
     ) {
         val currentTab: TabController.Tab?
-            get() = if(currentTabIndex != null) tabs.getOrNull(currentTabIndex) else null
+            get() = if (currentTabIndex != null) tabs.getOrNull(currentTabIndex) else null
         val currentUrl: String
-            get() = if(currentTabIndex != null) tabs.getOrNull(currentTabIndex)?.currentUrl ?: "" else ""
+            get() = if (currentTabIndex != null) tabs.getOrNull(currentTabIndex)?.currentUrl
+                ?: "" else ""
     }
 
     private val _uiState = MutableStateFlow(BrowserUiState())
@@ -44,8 +47,8 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
                     it.copy(
                         tabs = tabs,
                         currentTabIndex = currentIndex,
-                        navBarText = currentIndex?.let {
-                            index -> if(tabs[index].currentUrl == HOME_URL) "" else tabs[index].currentUrl
+                        navBarText = currentIndex?.let { index ->
+                            if (tabs[index].currentUrl == HOME_URL) "" else tabs[index].currentUrl
                         } ?: "",
                         isLoading = currentIndex?.let { index -> tabs[index].isLoading } ?: false,
                         showToolbarTooltip = showDrawerTooltip
@@ -74,10 +77,14 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
                 navBarText = ""
             )
         }
-        if(currentTab != null) {
+        if (currentTab != null) {
             viewModelScope.launch {
-                tabController.loadUrl(currentTab,
-                    if(navBarText.startsWith("data:") || ((navBarText.contains(":") || navBarText.contains(".")) && !navBarText.contains(" "))) navBarText else SEARCH_BASE_URI + navBarText
+                tabController.loadUrl(
+                    currentTab,
+                    if (navBarText.startsWith("data:") || ((navBarText.contains(":") || navBarText.contains(
+                            "."
+                        )) && !navBarText.contains(" "))
+                    ) navBarText else SEARCH_BASE_URI + navBarText
                 )
             }
         }
@@ -85,7 +92,7 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
 
     fun loadUrl(url: String) {
         val currentTab = _uiState.value.currentTab
-        if(currentTab != null) {
+        if (currentTab != null) {
             viewModelScope.launch {
                 tabController.loadUrl(currentTab, url)
             }
@@ -106,7 +113,7 @@ class BrowserViewModel @Inject constructor(private val tabController: TabControl
 
     fun goBack() {
         val currentTab = _uiState.value.currentTab
-        if(currentTab != null) {
+        if (currentTab != null) {
             viewModelScope.launch {
                 tabController.goBack(currentTab)
             }

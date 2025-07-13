@@ -1,3 +1,20 @@
-<resources>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name">Paperclip</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="swipe_up_on_toolbar_for_tabs">Swipe up on toolbar for tabs</string>
+    <string name="close">Close</string>
+    <string name="search_or_enter_address">Search or enter address</string>
+    <string name="new_tab">New Tab</string>
+    <string name="settings">Settings</string>
+    <string name="news">News</string>
+    <string name="headline">Headline</string>
+    <string name="description">Description</string>
+    <string name="today">Today</string>
+    <string name="read_time"><xliff:g name="time">%d</xliff:g> min read</string>
+    <string name="shortcuts">Shortcuts</string>
+    <string name="example">Example</string>
+    <string name="homepage">Homepage</string>
+    <string name="menu">Menu</string>
+    <string name="back">Back</string>
 </resources>

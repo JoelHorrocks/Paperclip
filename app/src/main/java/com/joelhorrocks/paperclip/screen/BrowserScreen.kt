@@ -94,6 +94,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
@@ -105,6 +106,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joelhorrocks.paperclip.BrowserViewModel
 import com.joelhorrocks.paperclip.HOME_URL
+import com.joelhorrocks.paperclip.R
 import com.joelhorrocks.paperclip.Screen
 import com.joelhorrocks.paperclip.TabController
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
@@ -249,7 +251,7 @@ fun WebAlertPrompt(
                     onDismissRequest()
                 }
             ) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         },
         dismissButton = { }
@@ -281,7 +283,7 @@ fun WebButtonPrompt(
                     onAction(true)
                 }
             ) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         },
         dismissButton = {
@@ -290,7 +292,7 @@ fun WebButtonPrompt(
                     onAction(false)
                 }
             ) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -384,7 +386,7 @@ fun NavBarContainer(
                     ) {
                         Icon(Icons.Default.ArrowDropUp, null)
                         // TODO: blocks navbar
-                        Text("Swipe up on toolbar for tabs")
+                        Text(stringResource(R.string.swipe_up_on_toolbar_for_tabs))
                     }
                 }
             }
@@ -426,9 +428,11 @@ fun NavBarContainer(
                                     .clip(CardDefaults.shape)
                                     .clickable {
                                         selectTab(index)
+                                        scope.launch {
+                                            anchoredDraggableState.animateTo(DragAnchors.Start)
+                                        }
                                     }
                             ) {
-                                // TODO: collapse drawer on click?
                                 Column {
                                     Row(
                                         modifier = Modifier
@@ -443,7 +447,9 @@ fun NavBarContainer(
                                     ) {
                                         // TODO: page URL
                                         Text(
-                                            text = if (tab.currentUrl == "about:home") "Homepage" else tab.currentUrl,
+                                            text = if (tab.currentUrl == "about:home") stringResource(
+                                                R.string.homepage
+                                            ) else tab.currentUrl,
                                             color = MaterialTheme.colorScheme.onSurface,
                                             overflow = TextOverflow.Ellipsis,
                                             fontSize = 16.sp,
@@ -460,7 +466,7 @@ fun NavBarContainer(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
-                                                contentDescription = "Close",
+                                                contentDescription = stringResource(R.string.close),
                                                 tint = MaterialTheme.colorScheme.onSurface
                                             )
                                         }
@@ -555,7 +561,7 @@ fun NavBar(
                     )
                 },
                 placeholder = {
-                    Text("Search or enter address")
+                    Text(stringResource(R.string.search_or_enter_address))
                 },
                 container = {
                     Container(
@@ -576,7 +582,7 @@ fun NavBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Menu"
+                    contentDescription = stringResource(R.string.menu)
                 )
             }
             DropdownMenu(
@@ -592,13 +598,13 @@ fun NavBar(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 }
                 HorizontalDivider()
                 DropdownMenuItem(
-                    text = { Text("New Tab") },
+                    text = { Text(stringResource(R.string.new_tab)) },
                     onClick = {
                         moreMenuExpanded = false
                         createTab()
@@ -606,12 +612,12 @@ fun NavBar(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = "New Tab"
+                            contentDescription = stringResource(R.string.new_tab)
                         )
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Settings") },
+                    text = { Text(stringResource(R.string.settings)) },
                     onClick = {
                         moreMenuExpanded = false
                         navigate(Screen.Settings)
@@ -646,7 +652,7 @@ fun HomeScreen(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Uni
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                "Paperclip",
+                stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineLarge
             )
             Spacer(modifier = Modifier.weight(1f))
@@ -668,7 +674,7 @@ fun Newsfeed(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit)
         modifier = Modifier.padding(horizontal = 8.dp)
     ) {
         Text(
-            "News",
+            stringResource(R.string.news),
             style = MaterialTheme.typography.titleLarge
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -676,72 +682,7 @@ fun Newsfeed(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit)
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(3) {
-                OutlinedCard (
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(CardDefaults.shape)
-                        .clickable {
-                            loadUrl("about:buildconfig")
-                        }
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .height(96.dp)
-                    ) {
-                        val colorScheme = MaterialTheme.colorScheme
-                        Canvas(
-                            modifier = Modifier
-                                .size(96.dp)
-                                .align(Alignment.CenterVertically)
-                                .clip(RoundedCornerShape(4.dp))
-                        ) {
-                            drawRoundRect(
-                                colorScheme.primaryContainer
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column(
-                            modifier = Modifier.fillMaxHeight()
-                        ) {
-                            Row {
-                                Icon(
-                                    Icons.Default.Newspaper,
-                                    null
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    "Headline",
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                            }
-                            Text(
-                                "Description",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Spacer(modifier = Modifier.weight(1f))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Today · 2 min read")
-                                Spacer(modifier = Modifier.weight(1f))
-                                IconButton(onClick = { }) {
-                                    Icon(
-                                        Icons.Default.BookmarkBorder,
-                                        null
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(4.dp))
-                                IconButton(onClick = { }) {
-                                    Icon(
-                                        Icons.Default.Flag,
-                                        null
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                NewsCard(loadUrl)
             }
             item {
                 Row(
@@ -765,10 +706,87 @@ fun Newsfeed(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit)
 }
 
 @Composable
+fun NewsCard(loadUrl: (url: String) -> Unit) {
+    OutlinedCard (
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(CardDefaults.shape)
+            .clickable {
+                loadUrl("about:buildconfig")
+            }
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(8.dp)
+                .height(96.dp)
+        ) {
+            val colorScheme = MaterialTheme.colorScheme
+            Canvas(
+                modifier = Modifier
+                    .size(96.dp)
+                    .align(Alignment.CenterVertically)
+                    .clip(RoundedCornerShape(4.dp))
+            ) {
+                drawRoundRect(
+                    colorScheme.primaryContainer
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(
+                modifier = Modifier.fillMaxHeight()
+            ) {
+                Row {
+                    Icon(
+                        Icons.Default.Newspaper,
+                        null
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        stringResource(R.string.headline),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
+                Text(
+                    stringResource(R.string.description),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "${stringResource(R.string.today)} · ${
+                            stringResource(
+                                R.string.read_time,
+                                2
+                            )
+                        }"
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(onClick = { }) {
+                        Icon(
+                            Icons.Default.BookmarkBorder,
+                            null
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IconButton(onClick = { }) {
+                        Icon(
+                            Icons.Default.Flag,
+                            null
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun ShortcutsRow(loadUrl: (url: String) -> Unit) {
     Column {
         Text(
-            "Shortcuts",
+            stringResource(R.string.shortcuts),
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(horizontal = 8.dp)
         )
@@ -778,7 +796,7 @@ fun ShortcutsRow(loadUrl: (url: String) -> Unit) {
             contentPadding = PaddingValues(horizontal = 8.dp)
         ) {
             items(5) {
-                Shortcut(Icons.Default.Web, "Example") {
+                Shortcut(Icons.Default.Web, stringResource(R.string.example)) {
                     loadUrl("about:buildconfig")
                 }
             }
@@ -796,11 +814,15 @@ fun Shortcut(icon: ImageVector, text: String, onClick: () -> Unit) {
     ) {
         val colorScheme = MaterialTheme.colorScheme
         Box(
-            modifier = Modifier.size(84.dp).drawBehind {
-                drawCircle(
-                    colorScheme.primaryContainer
-                )
-            }.clip(CircleShape).clickable { onClick() },
+            modifier = Modifier
+                .size(84.dp)
+                .drawBehind {
+                    drawCircle(
+                        colorScheme.primaryContainer
+                    )
+                }
+                .clip(CircleShape)
+                .clickable { onClick() },
             contentAlignment = Alignment.Center
         ) {
             Icon(

@@ -1,12 +1,9 @@
 package com.joelhorrocks.paperclip
 
-import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -55,8 +52,22 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
             _tabs.value = listOf(Tab(geckoSession = session))
             session.navigationDelegate = createNavigationDelegate()
             session.promptDelegate = createPromptDelegate()
+            session.contentDelegate = createContentDelegate()
             session.loadUri(HOME_URL)
             _currentTabIndex.value = 0
+        }
+    }
+
+    private fun createContentDelegate(): GeckoSession.ContentDelegate = object: GeckoSession.ContentDelegate {
+        override fun onKill(session: GeckoSession) {
+            super.onKill(session)
+            val killedTab = _tabs.value.firstOrNull { it.geckoSession == session }
+            if(killedTab == null || killedTab != _currentTabIndex.value?.let { _tabs.value[it] }) {
+                return
+            }
+
+            browserEngine.openSession(session)
+            session.loadUri(killedTab.currentUrl)
         }
     }
 
@@ -129,6 +140,7 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
                 it + Tab(geckoSession = newSession)
             }
             _currentTabIndex.value = _tabs.value.size - 1
+            // TODO: tab gets killed sometimes although below should prevent it happening?
             return GeckoResult.fromValue(newSession)
         }
     }
@@ -138,6 +150,13 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
     }
 
     fun selectTab(index: Int) {
+        // TODO: verify this is correct behaviour, should we split into own session switch function?
+        // TODO: will need to notify webextension support when tab is selected when I add it
+        val newSession = _tabs.value[index].geckoSession
+        if(!newSession.isOpen) {
+            browserEngine.openSession(newSession)
+            newSession.loadUri(_tabs.value[index].currentUrl)
+        }
         _currentTabIndex.value = index
     }
 
@@ -168,6 +187,8 @@ class TabController @Inject constructor(private val browserEngine: BrowserEngine
                 it + Tab(geckoSession = session)
             }
             session.navigationDelegate = createNavigationDelegate()
+            session.promptDelegate = createPromptDelegate()
+            session.contentDelegate = createContentDelegate()
             session.loadUri(HOME_URL)
             _currentTabIndex.value = _tabs.value.size - 1
         }

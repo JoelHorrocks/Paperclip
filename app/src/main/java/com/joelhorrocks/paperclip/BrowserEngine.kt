@@ -11,4 +11,8 @@ class BrowserEngine @Inject constructor(private val geckoRuntimeProvider: GeckoR
             open(geckoRuntimeProvider.runtime)
         }
     }
+
+    fun openSession(session: GeckoSession) {
+        session.open(geckoRuntimeProvider.runtime)
+    }
 }
