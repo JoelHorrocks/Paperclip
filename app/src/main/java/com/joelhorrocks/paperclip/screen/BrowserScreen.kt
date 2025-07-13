@@ -109,6 +109,8 @@ import com.joelhorrocks.paperclip.HOME_URL
 import com.joelhorrocks.paperclip.R
 import com.joelhorrocks.paperclip.Screen
 import com.joelhorrocks.paperclip.TabController
+import com.joelhorrocks.paperclip.model.Prompt
+import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -127,7 +129,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
             val state by browserViewModel.uiState.collectAsStateWithLifecycle()
             val focusManager = LocalFocusManager.current
-            val webPromptQueue = remember { mutableStateListOf<TabController.Prompt?>() }
+            val webPromptQueue = remember { mutableStateListOf<Prompt?>() }
             LaunchedEffect(Unit) {
                 browserViewModel.prompts.collect {
                     webPromptQueue.add(it)
@@ -136,7 +138,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
             // TODO: cap number of max prompts at once
             for(prompt in webPromptQueue.reversed()) {
                 when(prompt) {
-                    is TabController.Prompt.Alert -> {
+                    is Prompt.Alert -> {
                         WebAlertPrompt(
                             { webPromptQueue.remove(prompt) },
                             prompt.title!!,
@@ -144,7 +146,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                             Icons.Default.Web
                         )
                     }
-                    is TabController.Prompt.Button -> {
+                    is Prompt.Button -> {
                         WebButtonPrompt(
                             { webPromptQueue.remove(prompt); prompt.onAction(it) },
                             prompt.title!!,
@@ -301,7 +303,7 @@ fun WebButtonPrompt(
 @Composable
 fun NavBarContainer(
     currentTabIndex: Int?,
-    tabs: List<TabController.Tab>,
+    tabs: List<Tab>,
     navBarText: String,
     showToolbarTooltip: Boolean,
     navigate: (screen: Screen) -> Unit,

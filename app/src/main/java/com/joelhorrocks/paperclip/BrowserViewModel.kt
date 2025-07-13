@@ -2,6 +2,7 @@ package com.joelhorrocks.paperclip
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,13 +19,13 @@ class BrowserViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
     data class BrowserUiState(
-        val tabs: List<TabController.Tab> = emptyList(),
+        val tabs: List<Tab> = emptyList(),
         val currentTabIndex: Int? = 0,
         val navBarText: String = "",
         val isLoading: Boolean = false,
         val showToolbarTooltip: Boolean = false
     ) {
-        val currentTab: TabController.Tab?
+        val currentTab: Tab?
             get() = if (currentTabIndex != null) tabs.getOrNull(currentTabIndex) else null
         val currentUrl: String
             get() = if (currentTabIndex != null) tabs.getOrNull(currentTabIndex)?.currentUrl

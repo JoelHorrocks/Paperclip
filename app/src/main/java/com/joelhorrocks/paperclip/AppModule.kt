@@ -41,4 +41,10 @@ class AppModule {
     fun provideSettingsRepository(dataStore: DataStore<Preferences>): SettingsRepository {
         return SettingsRepositoryImpl(dataStore)
     }
+
+    @Provides
+    @Singleton
+    fun provideTabController(browserEngine: BrowserEngine): TabController {
+        return TabControllerImpl(browserEngine)
+    }
 }
