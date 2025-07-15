@@ -13,6 +13,7 @@ class SettingsRepositoryImpl(
 ): SettingsRepository {
     private object Keys {
         val SHOW_DRAWER_TOOLTIP = booleanPreferencesKey("show_drawer_tooltip")
+        val SHOW_SETUP = booleanPreferencesKey("show_setup")
     }
 
     override val showDrawerTooltip: Flow<Boolean>
@@ -22,5 +23,14 @@ class SettingsRepositoryImpl(
 
     override suspend fun setShowDrawerTooltip(value: Boolean) {
         dataStore.edit { prefs -> prefs[Keys.SHOW_DRAWER_TOOLTIP] = value }
+    }
+
+    override val showSetup: Flow<Boolean>
+        get() = dataStore.data
+            .map { prefs -> prefs[Keys.SHOW_SETUP] ?: true }
+            .catch { emit(true) }
+
+    override suspend fun setShowSetup(value: Boolean) {
+        dataStore.edit { prefs -> prefs[Keys.SHOW_SETUP] = value }
     }
 }

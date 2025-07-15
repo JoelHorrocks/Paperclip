@@ -136,11 +136,13 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                 }
             }
             // TODO: cap number of max prompts at once
+            // TODO: handle prompts from background tab? switch tab?
             for(prompt in webPromptQueue.reversed()) {
                 when(prompt) {
                     is Prompt.Alert -> {
                         WebAlertPrompt(
                             { webPromptQueue.remove(prompt) },
+                            // TODO: handle null
                             prompt.title!!,
                             prompt.message!!,
                             Icons.Default.Web
