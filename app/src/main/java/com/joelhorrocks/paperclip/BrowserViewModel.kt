@@ -3,6 +3,8 @@ package com.joelhorrocks.paperclip
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joelhorrocks.paperclip.model.Tab
+import com.joelhorrocks.paperclip.news.Article
+import com.joelhorrocks.paperclip.news.NewsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,19 +13,28 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import okio.IOException
 import javax.inject.Inject
+
+enum class ArticleLoadingState {
+    LOADING, SUCCESS, ERROR
+}
 
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
     private val tabController: TabController,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val newsRepository: NewsRepository
 ) : ViewModel() {
+
     data class BrowserUiState(
         val tabs: List<Tab> = emptyList(),
         val currentTabIndex: Int? = 0,
         val navBarText: String = "",
         val isLoading: Boolean = false,
-        val showToolbarTooltip: Boolean = false
+        val showToolbarTooltip: Boolean = false,
+        val articleLoadingState: ArticleLoadingState = ArticleLoadingState.LOADING,
+        val articleList: List<Article> = listOf()
     ) {
         val currentTab: Tab?
             get() = if (currentTabIndex != null) tabs.getOrNull(currentTabIndex) else null
@@ -129,6 +140,19 @@ class BrowserViewModel @Inject constructor(
         }
         viewModelScope.launch {
             settingsRepository.setShowDrawerTooltip(shown)
+        }
+    }
+
+    fun fetchArticles() {
+        viewModelScope.launch {
+            // TODO: errorhandling
+            val articles = newsRepository.fetchLatestNews()
+            _uiState.update {
+                    it.copy(
+                        articleLoadingState = ArticleLoadingState.SUCCESS,
+                        articleList = articles
+                    )
+            }
         }
     }
 }

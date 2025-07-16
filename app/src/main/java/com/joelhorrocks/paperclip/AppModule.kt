@@ -7,6 +7,7 @@ import androidx.datastore.dataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import com.joelhorrocks.paperclip.news.NewsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepositoryImpl
 import dagger.Module
@@ -40,6 +41,12 @@ class AppModule {
     @Singleton
     fun provideSettingsRepository(dataStore: DataStore<Preferences>): SettingsRepository {
         return SettingsRepositoryImpl(dataStore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNewsRepository(): NewsRepository {
+        return NewsRepository()
     }
 
     @Provides

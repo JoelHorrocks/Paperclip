@@ -33,6 +33,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -58,12 +59,15 @@ import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -104,6 +108,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.joelhorrocks.paperclip.ArticleLoadingState
 import com.joelhorrocks.paperclip.BrowserViewModel
 import com.joelhorrocks.paperclip.HOME_URL
 import com.joelhorrocks.paperclip.R
@@ -111,6 +116,7 @@ import com.joelhorrocks.paperclip.Screen
 import com.joelhorrocks.paperclip.TabController
 import com.joelhorrocks.paperclip.model.Prompt
 import com.joelhorrocks.paperclip.model.Tab
+import com.joelhorrocks.paperclip.news.Article
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -134,6 +140,9 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                 browserViewModel.prompts.collect {
                     webPromptQueue.add(it)
                 }
+            }
+            LaunchedEffect(Unit) {
+                browserViewModel.fetchArticles()
             }
             // TODO: cap number of max prompts at once
             // TODO: handle prompts from background tab? switch tab?
@@ -176,8 +185,10 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                             .fillMaxHeight()
                     ) {
                         Box {
+                            val articleLoadingState = browserViewModel.uiState.collectAsStateWithLifecycle().value.articleLoadingState
+                            val articleList = browserViewModel.uiState.collectAsStateWithLifecycle().value.articleList
                             when (state.currentUrl) {
-                                HOME_URL -> HomeScreen(navigate, loadUrl = { browserViewModel.loadUrl(it) })
+                                HOME_URL -> HomeScreen(navigate, loadUrl = { browserViewModel.loadUrl(it) }, articleLoadingState, articleList)
                                 else -> BrowserScreen(state.currentTab?.geckoSession)
                             }
                         }
@@ -639,7 +650,7 @@ fun NavBar(
 }
 
 @Composable
-fun HomeScreen(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit) {
+fun HomeScreen(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit, articleLoadingState: ArticleLoadingState, articleList: List<Article>) {
     Column(
         modifier = Modifier.padding(vertical = 8.dp)
     ) {
@@ -665,15 +676,17 @@ fun HomeScreen(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Uni
             }
         }
         Spacer(modifier = Modifier.weight(1f))
-        Newsfeed(navigate, loadUrl)
+        Newsfeed(navigate, loadUrl, articleLoadingState, articleList)
         // TODO: landscape mode issue
         ShortcutsRow(loadUrl)
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
+// TODO: horizontal scrolling? rethink layout for bottom stacked UI
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun Newsfeed(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit) {
+fun Newsfeed(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit, articleLoadingState: ArticleLoadingState, articleList: List<Article>) {
     Column(
         modifier = Modifier.padding(horizontal = 8.dp)
     ) {
@@ -682,60 +695,63 @@ fun Newsfeed(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit)
             style = MaterialTheme.typography.titleLarge
         )
         Spacer(modifier = Modifier.height(8.dp))
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(3) {
-                NewsCard(loadUrl)
-            }
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    // TODO: left-handed mode, consider LTR/RTL layout
-                    TextButton(onClick = {
-                        navigate(Screen.Newsfeed)
-                    }) {
-                        Text("See more")
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = "",
-                        )
+        when(articleLoadingState) {
+            ArticleLoadingState.LOADING -> {
+                Column {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(156.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ContainedLoadingIndicator(modifier = Modifier.size(56.dp))
                     }
                 }
             }
+            ArticleLoadingState.SUCCESS -> {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(articleList) {
+                        NewsCard(it, loadUrl)
+                    }
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            // TODO: left-handed mode, consider LTR/RTL layout
+                            TextButton(onClick = {
+                                navigate(Screen.Newsfeed)
+                            }) {
+                                Text("See more")
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = "",
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            ArticleLoadingState.ERROR -> {}
         }
     }
 }
 
 @Composable
-fun NewsCard(loadUrl: (url: String) -> Unit) {
+fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
     OutlinedCard (
         modifier = Modifier
             .fillMaxWidth()
             .clip(CardDefaults.shape)
             .clickable {
-                loadUrl("about:buildconfig")
+                loadUrl(article.url)
             }
     ) {
         Row(
             modifier = Modifier
                 .padding(8.dp)
-                .height(96.dp)
+                .height(112.dp)
         ) {
-            val colorScheme = MaterialTheme.colorScheme
-            Canvas(
-                modifier = Modifier
-                    .size(96.dp)
-                    .align(Alignment.CenterVertically)
-                    .clip(RoundedCornerShape(4.dp))
-            ) {
-                drawRoundRect(
-                    colorScheme.primaryContainer
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
             Column(
                 modifier = Modifier.fillMaxHeight()
             ) {
@@ -746,13 +762,13 @@ fun NewsCard(loadUrl: (url: String) -> Unit) {
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        stringResource(R.string.headline),
-                        style = MaterialTheme.typography.titleLarge
+                        article.headline,
+                        style = MaterialTheme.typography.titleSmall
                     )
                 }
                 Text(
-                    stringResource(R.string.description),
-                    style = MaterialTheme.typography.bodyMedium
+                    article.description,
+                    style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Row(
@@ -761,8 +777,7 @@ fun NewsCard(loadUrl: (url: String) -> Unit) {
                     Text(
                         "${stringResource(R.string.today)} · ${
                             stringResource(
-                                R.string.read_time,
-                                2
+                                R.string.read_time, article.readTimeMin
                             )
                         }"
                     )
@@ -786,6 +801,7 @@ fun NewsCard(loadUrl: (url: String) -> Unit) {
     }
 }
 
+// TODO: database
 @Composable
 fun ShortcutsRow(loadUrl: (url: String) -> Unit) {
     Column {
