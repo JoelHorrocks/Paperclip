@@ -90,24 +90,20 @@ class BrowserViewModel @Inject constructor(
             )
         }
         if (currentTab != null) {
-            viewModelScope.launch {
-                tabController.loadUrl(
-                    currentTab,
-                    if (navBarText.startsWith("data:") || ((navBarText.contains(":") || navBarText.contains(
-                            "."
-                        )) && !navBarText.contains(" "))
+            tabController.loadUrl(
+                currentTab,
+                if (navBarText.startsWith("data:") || ((navBarText.contains(":") || navBarText.contains(
+                        "."
+                )) && !navBarText.contains(" "))
                     ) navBarText else SEARCH_BASE_URI + navBarText
-                )
-            }
+            )
         }
     }
 
     fun loadUrl(url: String) {
         val currentTab = _uiState.value.currentTab
         if (currentTab != null) {
-            viewModelScope.launch {
-                tabController.loadUrl(currentTab, url)
-            }
+            tabController.loadUrl(currentTab, url)
         }
     }
 
@@ -126,9 +122,7 @@ class BrowserViewModel @Inject constructor(
     fun goBack() {
         val currentTab = _uiState.value.currentTab
         if (currentTab != null) {
-            viewModelScope.launch {
-                tabController.goBack(currentTab)
-            }
+            tabController.goBack(currentTab)
         }
     }
 
