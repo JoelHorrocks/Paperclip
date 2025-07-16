@@ -90,14 +90,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -141,13 +145,14 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                     webPromptQueue.add(it)
                 }
             }
+            // TODO: cache or otherwise persist when navigating away then back
             LaunchedEffect(Unit) {
                 browserViewModel.fetchArticles()
             }
             // TODO: cap number of max prompts at once
             // TODO: handle prompts from background tab? switch tab?
-            for(prompt in webPromptQueue.reversed()) {
-                when(prompt) {
+            for (prompt in webPromptQueue.reversed()) {
+                when (prompt) {
                     is Prompt.Alert -> {
                         WebAlertPrompt(
                             { webPromptQueue.remove(prompt) },
@@ -157,6 +162,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                             Icons.Default.Web
                         )
                     }
+
                     is Prompt.Button -> {
                         WebButtonPrompt(
                             { webPromptQueue.remove(prompt); prompt.onAction(it) },
@@ -165,6 +171,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                             Icons.Default.Web
                         )
                     }
+
                     else -> {}
                 }
             }
@@ -185,10 +192,18 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                             .fillMaxHeight()
                     ) {
                         Box {
-                            val articleLoadingState = browserViewModel.uiState.collectAsStateWithLifecycle().value.articleLoadingState
-                            val articleList = browserViewModel.uiState.collectAsStateWithLifecycle().value.articleList
+                            val articleLoadingState =
+                                browserViewModel.uiState.collectAsStateWithLifecycle().value.articleLoadingState
+                            val articleList =
+                                browserViewModel.uiState.collectAsStateWithLifecycle().value.articleList
                             when (state.currentUrl) {
-                                HOME_URL -> HomeScreen(navigate, loadUrl = { browserViewModel.loadUrl(it) }, articleLoadingState, articleList)
+                                HOME_URL -> HomeScreen(
+                                    navigate,
+                                    loadUrl = { browserViewModel.loadUrl(it) },
+                                    articleLoadingState,
+                                    articleList
+                                )
+
                                 else -> BrowserScreen(state.currentTab?.geckoSession)
                             }
                         }
@@ -415,11 +430,18 @@ fun NavBarContainer(
                     )
             ) {
                 // TODO: swipe left and right to switch tab
-                NavBar(navBarText, updateUrl, submitUrl, goBack, createTab, navigate, collapseDrawer = {
-                    scope.launch {
-                        anchoredDraggableState.animateTo(DragAnchors.Start)
-                    }
-                })
+                NavBar(
+                    navBarText,
+                    updateUrl,
+                    submitUrl,
+                    goBack,
+                    createTab,
+                    navigate,
+                    collapseDrawer = {
+                        scope.launch {
+                            anchoredDraggableState.animateTo(DragAnchors.Start)
+                        }
+                    })
                 Box(
                     modifier = Modifier
                         .height(348.dp)
@@ -650,7 +672,12 @@ fun NavBar(
 }
 
 @Composable
-fun HomeScreen(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit, articleLoadingState: ArticleLoadingState, articleList: List<Article>) {
+fun HomeScreen(
+    navigate: (screen: Screen) -> Unit,
+    loadUrl: (url: String) -> Unit,
+    articleLoadingState: ArticleLoadingState,
+    articleList: List<Article>
+) {
     Column(
         modifier = Modifier.padding(vertical = 8.dp)
     ) {
@@ -677,6 +704,7 @@ fun HomeScreen(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Uni
         }
         Spacer(modifier = Modifier.weight(1f))
         Newsfeed(navigate, loadUrl, articleLoadingState, articleList)
+        Spacer(modifier = Modifier.height(16.dp))
         // TODO: landscape mode issue
         ShortcutsRow(loadUrl)
         Spacer(modifier = Modifier.height(24.dp))
@@ -686,29 +714,32 @@ fun HomeScreen(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Uni
 // TODO: horizontal scrolling? rethink layout for bottom stacked UI
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun Newsfeed(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit, articleLoadingState: ArticleLoadingState, articleList: List<Article>) {
-    Column(
-        modifier = Modifier.padding(horizontal = 8.dp)
-    ) {
-        Text(
-            stringResource(R.string.news),
-            style = MaterialTheme.typography.titleLarge
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        when(articleLoadingState) {
+fun Newsfeed(
+    navigate: (screen: Screen) -> Unit,
+    loadUrl: (url: String) -> Unit,
+    articleLoadingState: ArticleLoadingState,
+    articleList: List<Article>
+) {
+    Column {
+        when (articleLoadingState) {
             ArticleLoadingState.LOADING -> {
                 Column {
                     Box(
-                        modifier = Modifier.fillMaxWidth().height(156.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(256.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         ContainedLoadingIndicator(modifier = Modifier.size(56.dp))
                     }
                 }
             }
+
             ArticleLoadingState.SUCCESS -> {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     items(articleList) {
                         NewsCard(it, loadUrl)
@@ -732,6 +763,7 @@ fun Newsfeed(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit,
                     }
                 }
             }
+
             ArticleLoadingState.ERROR -> {}
         }
     }
@@ -739,64 +771,67 @@ fun Newsfeed(navigate: (screen: Screen) -> Unit, loadUrl: (url: String) -> Unit,
 
 @Composable
 fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
-    OutlinedCard (
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(CardDefaults.shape)
+            .paint(painterResource(R.mipmap.placeholder), contentScale = ContentScale.Crop)
             .clickable {
                 loadUrl(article.url)
             }
+            .height(256.dp)
+            .width(192.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(8.dp)
-                .height(112.dp)
+        Column(
+            modifier = Modifier.fillMaxHeight()
         ) {
-            Column(
-                modifier = Modifier.fillMaxHeight()
+            Row(
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row {
-                    Icon(
-                        Icons.Default.Newspaper,
-                        null
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        article.headline,
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                }
-                Text(
-                    article.description,
-                    style = MaterialTheme.typography.bodySmall
+                Icon(
+                    Icons.Default.Newspaper,
+                    null,
+                    modifier = Modifier.padding(horizontal = 8.dp)
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "${stringResource(R.string.today)} · ${
-                            stringResource(
-                                R.string.read_time, article.readTimeMin
-                            )
-                        }"
+                IconButton(onClick = { }) {
+                    Icon(
+                        Icons.Default.BookmarkBorder,
+                        null
                     )
-                    Spacer(modifier = Modifier.weight(1f))
-                    IconButton(onClick = { }) {
-                        Icon(
-                            Icons.Default.BookmarkBorder,
-                            null
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    IconButton(onClick = { }) {
-                        Icon(
-                            Icons.Default.Flag,
-                            null
-                        )
-                    }
+                }
+                IconButton(onClick = { }) {
+                    Icon(
+                        Icons.Default.Flag,
+                        null
+                    )
                 }
             }
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                article.headline,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                article.publisher,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            /*Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "${stringResource(R.string.today)} · ${
+                        stringResource(
+                            R.string.read_time, article.readTimeMin
+                        )
+                    }"
+                )
+                Spacer(modifier = Modifier.weight(1f))
+            }*/
         }
     }
 }
@@ -805,12 +840,6 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
 @Composable
 fun ShortcutsRow(loadUrl: (url: String) -> Unit) {
     Column {
-        Text(
-            stringResource(R.string.shortcuts),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(horizontal = 8.dp)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 8.dp)
@@ -846,7 +875,10 @@ fun Shortcut(icon: ImageVector, text: String, onClick: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                icon, null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer
+                icon,
+                null,
+                modifier = Modifier.size(36.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
         Text(

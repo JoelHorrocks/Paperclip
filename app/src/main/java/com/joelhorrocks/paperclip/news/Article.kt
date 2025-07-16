@@ -1,5 +1,6 @@
 package com.joelhorrocks.paperclip.news
 
+import android.graphics.Bitmap
 import java.util.Date
 
 data class Article(
@@ -7,6 +8,8 @@ data class Article(
     val headline: String,
     val description: String,
     val publicationDate: Date,
+    val publisher: String,
     val readTimeMin: Int,
+    // TODO: image - URL?
     val url: String
 )

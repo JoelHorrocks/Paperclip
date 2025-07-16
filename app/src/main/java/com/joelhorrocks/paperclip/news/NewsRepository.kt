@@ -15,6 +15,7 @@ class NewsRepository() {
             description = "Researchers at major technology companies have successfully demonstrated a new quantum computing architecture that could revolutionize data processing and encryption.",
             publicationDate = dateFmt.parse("2024-07-10"),
             readTimeMin = 8,
+            publisher = "Tech Pulse",
             url = "https://example.com/quantum-computing-breakthrough"
         ),
         Article(
@@ -23,6 +24,7 @@ class NewsRepository() {
             description = "New study reveals how rising temperatures and changing weather patterns are affecting crop yields worldwide, with potential solutions for sustainable agriculture.",
             publicationDate = dateFmt.parse("2024-07-08"),
             readTimeMin = 12,
+            publisher = "Green Planet Daily",
             url = "https://example.com/climate-food-security"
         ),
         Article(
@@ -31,6 +33,7 @@ class NewsRepository() {
             description = "An analysis of how remote work has evolved since the pandemic, examining productivity trends, employee satisfaction, and the future of hybrid work models.",
             publicationDate = dateFmt.parse("2024-07-15"),
             readTimeMin = 6,
+            publisher = "Workflow Today",
             url = "https://example.com/remote-work-evolution"
         ),
         Article(
@@ -39,6 +42,7 @@ class NewsRepository() {
             description = "Medical professionals are increasingly using AI-powered tools to improve diagnostic accuracy and speed, leading to better patient outcomes across various specialties.",
             publicationDate = dateFmt.parse("2024-07-12"),
             readTimeMin = 10,
+            publisher = "MedTech Insight",
             url = "https://example.com/ai-healthcare-diagnosis"
         ),
         Article(
@@ -47,6 +51,7 @@ class NewsRepository() {
             description = "Private space companies are preparing for the first commercial lunar tourism flights, marking a new era in space exploration and accessibility.",
             publicationDate = dateFmt.parse("2024-07-05"),
             readTimeMin = 7,
+            publisher = "Cosmos Report",
             url = "https://example.com/space-tourism-lunar"
         ),
         Article(
@@ -55,6 +60,7 @@ class NewsRepository() {
             description = "Global electric vehicle sales have surpassed traditional combustion engines in major markets, driven by improved battery technology and charging infrastructure.",
             publicationDate = dateFmt.parse("2024-07-14"),
             readTimeMin = 9,
+            publisher = "New Auto",
             url = "https://example.com/electric-vehicle-adoption"
         ),
         Article(
@@ -63,6 +69,7 @@ class NewsRepository() {
             description = "Consumer behavior shifts toward sustainable and ethical fashion choices are forcing major retailers to reimagine their production and supply chain strategies.",
             publicationDate = dateFmt.parse("2024-07-06"),
             readTimeMin = 5,
+            publisher = "StyleWatch",
             url = "https://example.com/sustainable-fashion-trends"
         ),
         Article(
@@ -71,6 +78,7 @@ class NewsRepository() {
             description = "Recent studies demonstrate that digital mental health interventions can be as effective as traditional therapy for treating anxiety and depression.",
             publicationDate = dateFmt.parse("2024-07-11"),
             readTimeMin = 11,
+            publisher = "Mind Wellness",
             url = "https://example.com/mental-health-apps-study"
         ),
         Article(
@@ -79,6 +87,7 @@ class NewsRepository() {
             description = "Innovative battery technologies and alternative energy storage methods are solving the intermittency challenges of solar and wind power generation.",
             publicationDate = dateFmt.parse("2024-07-09"),
             readTimeMin = 8,
+            publisher = "Energy NextGen",
             url = "https://example.com/renewable-energy-storage"
         ),
         Article(
@@ -87,6 +96,7 @@ class NewsRepository() {
             description = "Vertical farms and rooftop gardens are becoming integral to urban planning, providing fresh produce while reducing transportation costs and environmental impact.",
             publicationDate = dateFmt.parse("2024-07-13"),
             readTimeMin = 6,
+            publisher = "City Life Chronicle",
             url = "https://example.com/urban-farming-revolution"
         )
     )
