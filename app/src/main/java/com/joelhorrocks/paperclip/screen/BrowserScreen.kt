@@ -771,55 +771,73 @@ fun Newsfeed(
 
 @Composable
 fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
-    Box(
+    OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(CardDefaults.shape)
-            .paint(painterResource(R.mipmap.placeholder), contentScale = ContentScale.Crop)
+            .height(224.dp)
+            .width(216.dp)
             .clickable {
                 loadUrl(article.url)
             }
-            .height(256.dp)
-            .width(192.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxHeight()
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .paint(painterResource(article.imageResource), contentScale = ContentScale.Crop)
             ) {
-                Icon(
-                    Icons.Default.Newspaper,
-                    null,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                IconButton(onClick = { }) {
-                    Icon(
-                        Icons.Default.BookmarkBorder,
-                        null
-                    )
-                }
-                IconButton(onClick = { }) {
-                    Icon(
-                        Icons.Default.Flag,
-                        null
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(4.dp).clip(RoundedCornerShape(32.dp)).background(Color.White.copy(alpha = 0.7f))
+                    ) {
+                        IconButton(onClick = { }) {
+                            Icon(
+                                Icons.Default.BookmarkBorder,
+                                null
+                            )
+                        }
+                        IconButton(onClick = { }) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                null
+                            )
+                        }
+                    }
                 }
             }
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                article.headline,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                article.publisher,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            Column (
+                modifier = Modifier.background(CardDefaults.outlinedCardColors().containerColor)
+            ) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    article.headline,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Newspaper,
+                        null,
+                        modifier = Modifier.padding(start = 8.dp).size(16.dp)
+                    )
+                    Text(
+                        article.publisher,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             /*Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {

@@ -1,5 +1,7 @@
 package com.joelhorrocks.paperclip.news
 
+import androidx.compose.ui.res.painterResource
+import com.joelhorrocks.paperclip.R
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -16,6 +18,7 @@ class NewsRepository() {
             publicationDate = dateFmt.parse("2024-07-10"),
             readTimeMin = 8,
             publisher = "Tech Pulse",
+            imageResource = R.mipmap.placeholder_news_quantum,
             url = "https://example.com/quantum-computing-breakthrough"
         ),
         Article(
@@ -25,6 +28,7 @@ class NewsRepository() {
             publicationDate = dateFmt.parse("2024-07-08"),
             readTimeMin = 12,
             publisher = "Green Planet Daily",
+            imageResource = R.mipmap.placeholder_news_crops,
             url = "https://example.com/climate-food-security"
         ),
         Article(
@@ -34,6 +38,7 @@ class NewsRepository() {
             publicationDate = dateFmt.parse("2024-07-15"),
             readTimeMin = 6,
             publisher = "Workflow Today",
+            imageResource = R.mipmap.placeholder_news_desk,
             url = "https://example.com/remote-work-evolution"
         ),
         Article(
@@ -43,6 +48,7 @@ class NewsRepository() {
             publicationDate = dateFmt.parse("2024-07-12"),
             readTimeMin = 10,
             publisher = "MedTech Insight",
+            imageResource = R.mipmap.placeholder_news_ai,
             url = "https://example.com/ai-healthcare-diagnosis"
         ),
         Article(
@@ -52,6 +58,7 @@ class NewsRepository() {
             publicationDate = dateFmt.parse("2024-07-05"),
             readTimeMin = 7,
             publisher = "Cosmos Report",
+            imageResource = R.mipmap.placeholder_news_rocket,
             url = "https://example.com/space-tourism-lunar"
         ),
         Article(
@@ -61,6 +68,7 @@ class NewsRepository() {
             publicationDate = dateFmt.parse("2024-07-14"),
             readTimeMin = 9,
             publisher = "New Auto",
+            imageResource = R.mipmap.placeholder_news_electric_car,
             url = "https://example.com/electric-vehicle-adoption"
         ),
         Article(
@@ -70,6 +78,7 @@ class NewsRepository() {
             publicationDate = dateFmt.parse("2024-07-06"),
             readTimeMin = 5,
             publisher = "StyleWatch",
+            imageResource = R.mipmap.placeholder_news_clothes,
             url = "https://example.com/sustainable-fashion-trends"
         ),
         Article(
@@ -79,6 +88,7 @@ class NewsRepository() {
             publicationDate = dateFmt.parse("2024-07-11"),
             readTimeMin = 11,
             publisher = "Mind Wellness",
+            imageResource = R.mipmap.placeholder_news_phone,
             url = "https://example.com/mental-health-apps-study"
         ),
         Article(
@@ -88,6 +98,7 @@ class NewsRepository() {
             publicationDate = dateFmt.parse("2024-07-09"),
             readTimeMin = 8,
             publisher = "Energy NextGen",
+            imageResource = R.mipmap.placeholder_news_renewable_energy,
             url = "https://example.com/renewable-energy-storage"
         ),
         Article(
@@ -97,6 +108,7 @@ class NewsRepository() {
             publicationDate = dateFmt.parse("2024-07-13"),
             readTimeMin = 6,
             publisher = "City Life Chronicle",
+            imageResource = R.mipmap.placeholder_news_advanced_farming,
             url = "https://example.com/urban-farming-revolution"
         )
     )
@@ -104,6 +116,6 @@ class NewsRepository() {
     suspend fun fetchLatestNews(): List<Article> {
         // TODO: remove loading simulation delay
         delay(2000)
-        return mockArticles.shuffled().take(3)
+        return mockArticles.shuffled().take(4)
     }
 }
