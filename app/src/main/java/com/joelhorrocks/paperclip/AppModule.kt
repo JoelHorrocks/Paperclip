@@ -10,6 +10,8 @@ import androidx.datastore.preferences.core.emptyPreferences
 import com.joelhorrocks.paperclip.news.NewsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepositoryImpl
+import com.joelhorrocks.paperclip.shortcuts.Shortcut
+import com.joelhorrocks.paperclip.shortcuts.ShortcutsRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -47,6 +49,12 @@ class AppModule {
     @Singleton
     fun provideNewsRepository(): NewsRepository {
         return NewsRepository()
+    }
+
+    @Provides
+    @Singleton
+    fun provideShortcutsRepository(): ShortcutsRepository {
+        return ShortcutsRepository()
     }
 
     @Provides

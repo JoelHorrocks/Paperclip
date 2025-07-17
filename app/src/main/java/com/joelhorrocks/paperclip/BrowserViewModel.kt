@@ -6,6 +6,8 @@ import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.news.Article
 import com.joelhorrocks.paperclip.news.NewsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepository
+import com.joelhorrocks.paperclip.shortcuts.Shortcut
+import com.joelhorrocks.paperclip.shortcuts.ShortcutsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,11 +22,16 @@ enum class ArticleLoadingState {
     LOADING, SUCCESS, ERROR
 }
 
+enum class ShortcutsLoadingState {
+    LOADING, SUCCESS, ERROR
+}
+
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
     private val tabController: TabController,
     private val settingsRepository: SettingsRepository,
-    private val newsRepository: NewsRepository
+    private val newsRepository: NewsRepository,
+    private val shortcutsRepository: ShortcutsRepository
 ) : ViewModel() {
 
     data class BrowserUiState(
@@ -34,7 +41,9 @@ class BrowserViewModel @Inject constructor(
         val isLoading: Boolean = false,
         val showToolbarTooltip: Boolean = false,
         val articleLoadingState: ArticleLoadingState = ArticleLoadingState.LOADING,
-        val articleList: List<Article> = listOf()
+        val articleList: List<Article> = listOf(),
+        val shortcutsLoadingState: ShortcutsLoadingState = ShortcutsLoadingState.LOADING,
+        val shortcutList: List<Shortcut> = listOf()
     ) {
         val currentTab: Tab?
             get() = if (currentTabIndex != null) tabs.getOrNull(currentTabIndex) else null
@@ -94,8 +103,8 @@ class BrowserViewModel @Inject constructor(
                 currentTab,
                 if (navBarText.startsWith("data:") || ((navBarText.contains(":") || navBarText.contains(
                         "."
-                )) && !navBarText.contains(" "))
-                    ) navBarText else SEARCH_BASE_URI + navBarText
+                    )) && !navBarText.contains(" "))
+                ) navBarText else SEARCH_BASE_URI + navBarText
             )
         }
     }
@@ -142,10 +151,22 @@ class BrowserViewModel @Inject constructor(
             // TODO: errorhandling
             val articles = newsRepository.fetchLatestNews()
             _uiState.update {
-                    it.copy(
-                        articleLoadingState = ArticleLoadingState.SUCCESS,
-                        articleList = articles
-                    )
+                it.copy(
+                    articleLoadingState = ArticleLoadingState.SUCCESS,
+                    articleList = articles
+                )
+            }
+        }
+    }
+
+    fun fetchShortcuts() {
+        viewModelScope.launch {
+            val shortcuts = shortcutsRepository.fetchShortcuts()
+            _uiState.update {
+                it.copy(
+                    shortcutsLoadingState = ShortcutsLoadingState.SUCCESS,
+                    shortcutList = shortcuts
+                )
             }
         }
     }

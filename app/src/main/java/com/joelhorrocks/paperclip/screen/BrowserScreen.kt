@@ -117,10 +117,12 @@ import com.joelhorrocks.paperclip.BrowserViewModel
 import com.joelhorrocks.paperclip.HOME_URL
 import com.joelhorrocks.paperclip.R
 import com.joelhorrocks.paperclip.Screen
+import com.joelhorrocks.paperclip.ShortcutsLoadingState
 import com.joelhorrocks.paperclip.TabController
 import com.joelhorrocks.paperclip.model.Prompt
 import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.news.Article
+import com.joelhorrocks.paperclip.shortcuts.Shortcut
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -147,6 +149,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
             }
             // TODO: cache or otherwise persist when navigating away then back
             LaunchedEffect(Unit) {
+                browserViewModel.fetchShortcuts()
                 browserViewModel.fetchArticles()
             }
             // TODO: cap number of max prompts at once
@@ -192,16 +195,14 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                             .fillMaxHeight()
                     ) {
                         Box {
-                            val articleLoadingState =
-                                browserViewModel.uiState.collectAsStateWithLifecycle().value.articleLoadingState
-                            val articleList =
-                                browserViewModel.uiState.collectAsStateWithLifecycle().value.articleList
                             when (state.currentUrl) {
                                 HOME_URL -> HomeScreen(
                                     navigate,
                                     loadUrl = { browserViewModel.loadUrl(it) },
-                                    articleLoadingState,
-                                    articleList
+                                    state.articleLoadingState,
+                                    state.articleList,
+                                    state.shortcutsLoadingState,
+                                    state.shortcutList
                                 )
 
                                 else -> BrowserScreen(state.currentTab?.geckoSession)
@@ -676,7 +677,9 @@ fun HomeScreen(
     navigate: (screen: Screen) -> Unit,
     loadUrl: (url: String) -> Unit,
     articleLoadingState: ArticleLoadingState,
-    articleList: List<Article>
+    articleList: List<Article>,
+    shortcutsLoadingState: ShortcutsLoadingState,
+    shortcutList: List<Shortcut>
 ) {
     Column(
         modifier = Modifier.padding(vertical = 8.dp)
@@ -706,7 +709,7 @@ fun HomeScreen(
         Newsfeed(navigate, loadUrl, articleLoadingState, articleList)
         Spacer(modifier = Modifier.height(16.dp))
         // TODO: landscape mode issue
-        ShortcutsRow(loadUrl)
+        ShortcutsRow(loadUrl, shortcutsLoadingState, shortcutList)
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
@@ -727,7 +730,7 @@ fun Newsfeed(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(256.dp),
+                            .height(242.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         ContainedLoadingIndicator(modifier = Modifier.size(56.dp))
@@ -775,7 +778,7 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(CardDefaults.shape)
-            .height(224.dp)
+            .height(242.dp)
             .width(216.dp)
             .clickable {
                 loadUrl(article.url)
@@ -838,39 +841,36 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
-            /*Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "${stringResource(R.string.today)} · ${
-                        stringResource(
-                            R.string.read_time, article.readTimeMin
-                        )
-                    }"
-                )
-                Spacer(modifier = Modifier.weight(1f))
-            }*/
         }
     }
 }
 
 // TODO: database
 @Composable
-fun ShortcutsRow(loadUrl: (url: String) -> Unit) {
-    Column {
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp)
-        ) {
-            items(5) {
-                Shortcut(Icons.Default.Web, stringResource(R.string.example)) {
-                    loadUrl("about:buildconfig")
+fun ShortcutsRow(loadUrl: (url: String) -> Unit, shortcutsLoadingState: ShortcutsLoadingState, shortcutList: List<Shortcut>) {
+    when (shortcutsLoadingState) {
+        ShortcutsLoadingState.LOADING -> {
+            // TODO: define specific section height to avoid shift as shortcuts load
+            // TODO: maybe have 'fake' icons and transition in to hide loading - load is from disk so should be much faster than above news section
+        }
+        ShortcutsLoadingState.SUCCESS -> {
+            Column {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    items(shortcutList) {
+                        Shortcut(Icons.Default.Web, it.name) {
+                            loadUrl(it.url)
+                        }
+                    }
+                    item {
+                        Shortcut(Icons.Default.Add, "") {}
+                    }
                 }
             }
-            item {
-                Shortcut(Icons.Default.Add, "") {}
-            }
         }
+        ShortcutsLoadingState.ERROR -> { }
     }
 }
 
