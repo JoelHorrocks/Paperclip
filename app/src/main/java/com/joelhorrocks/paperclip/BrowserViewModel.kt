@@ -59,6 +59,9 @@ class BrowserViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            // TODO: cache or otherwise persist when navigating away then back
+            fetchShortcuts()
+            fetchArticles()
             combine(
                 tabController.tabs,
                 tabController.currentTabIndex,
@@ -147,6 +150,11 @@ class BrowserViewModel @Inject constructor(
     }
 
     fun fetchArticles() {
+        _uiState.update {
+            it.copy(
+                articleLoadingState = ArticleLoadingState.LOADING
+            )
+        }
         viewModelScope.launch {
             // TODO: errorhandling
             val articles = newsRepository.fetchLatestNews()
@@ -160,6 +168,11 @@ class BrowserViewModel @Inject constructor(
     }
 
     fun fetchShortcuts() {
+        _uiState.update {
+            it.copy(
+                shortcutsLoadingState = ShortcutsLoadingState.LOADING
+            )
+        }
         viewModelScope.launch {
             val shortcuts = shortcutsRepository.fetchShortcuts()
             _uiState.update {

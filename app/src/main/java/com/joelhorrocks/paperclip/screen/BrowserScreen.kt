@@ -147,11 +147,6 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                     webPromptQueue.add(it)
                 }
             }
-            // TODO: cache or otherwise persist when navigating away then back
-            LaunchedEffect(Unit) {
-                browserViewModel.fetchShortcuts()
-                browserViewModel.fetchArticles()
-            }
             // TODO: cap number of max prompts at once
             // TODO: handle prompts from background tab? switch tab?
             for (prompt in webPromptQueue.reversed()) {
