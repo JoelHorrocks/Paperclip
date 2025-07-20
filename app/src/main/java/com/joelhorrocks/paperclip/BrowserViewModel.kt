@@ -7,7 +7,7 @@ import com.joelhorrocks.paperclip.news.Article
 import com.joelhorrocks.paperclip.news.NewsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepository
 import com.joelhorrocks.paperclip.shortcuts.Shortcut
-import com.joelhorrocks.paperclip.shortcuts.ShortcutsRepository
+import com.joelhorrocks.paperclip.shortcuts.ShortcutRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import okio.IOException
 import javax.inject.Inject
 
 enum class ArticleLoadingState {
@@ -31,7 +30,7 @@ class BrowserViewModel @Inject constructor(
     private val tabController: TabController,
     private val settingsRepository: SettingsRepository,
     private val newsRepository: NewsRepository,
-    private val shortcutsRepository: ShortcutsRepository
+    private val shortcutRepository: ShortcutRepository
 ) : ViewModel() {
 
     data class BrowserUiState(
@@ -42,7 +41,6 @@ class BrowserViewModel @Inject constructor(
         val showToolbarTooltip: Boolean = false,
         val articleLoadingState: ArticleLoadingState = ArticleLoadingState.LOADING,
         val articleList: List<Article> = listOf(),
-        val shortcutsLoadingState: ShortcutsLoadingState = ShortcutsLoadingState.LOADING,
         val shortcutList: List<Shortcut> = listOf()
     ) {
         val currentTab: Tab?
@@ -60,13 +58,14 @@ class BrowserViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             // TODO: cache or otherwise persist when navigating away then back
-            fetchShortcuts()
             fetchArticles()
             combine(
                 tabController.tabs,
                 tabController.currentTabIndex,
-                settingsRepository.showDrawerTooltip
-            ) { tabs, currentIndex, showDrawerTooltip ->
+                settingsRepository.showDrawerTooltip,
+                // TODO: add distinctUntilChanged() in appropriate place
+                shortcutRepository.getAllShortcuts()
+            ) { tabs, currentIndex, showDrawerTooltip, shortcuts ->
                 _uiState.update {
                     it.copy(
                         tabs = tabs,
@@ -75,7 +74,8 @@ class BrowserViewModel @Inject constructor(
                             if (tabs[index].currentUrl == HOME_URL) "" else tabs[index].currentUrl
                         } ?: "",
                         isLoading = currentIndex?.let { index -> tabs[index].isLoading } ?: false,
-                        showToolbarTooltip = showDrawerTooltip
+                        showToolbarTooltip = showDrawerTooltip,
+                        shortcutList = shortcuts
                     )
                 }
             }.collect()
@@ -167,20 +167,15 @@ class BrowserViewModel @Inject constructor(
         }
     }
 
-    fun fetchShortcuts() {
-        _uiState.update {
-            it.copy(
-                shortcutsLoadingState = ShortcutsLoadingState.LOADING
-            )
-        }
+    fun insertShortcut(shortcut: Shortcut) {
         viewModelScope.launch {
-            val shortcuts = shortcutsRepository.fetchShortcuts()
-            _uiState.update {
-                it.copy(
-                    shortcutsLoadingState = ShortcutsLoadingState.SUCCESS,
-                    shortcutList = shortcuts
-                )
-            }
+            shortcutRepository.insertShortcuts(shortcut)
+        }
+    }
+
+    fun deleteShortcut(shortcut: Shortcut) {
+        viewModelScope.launch {
+            shortcutRepository.deleteShortcut(shortcut)
         }
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
@@ -29,6 +30,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -39,6 +42,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -53,10 +57,13 @@ import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Newspaper
+import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
@@ -70,9 +77,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.OutlinedTextFieldDefaults.Container
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
@@ -96,10 +105,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -111,6 +122,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joelhorrocks.paperclip.ArticleLoadingState
 import com.joelhorrocks.paperclip.BrowserViewModel
@@ -194,9 +206,10 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                                 HOME_URL -> HomeScreen(
                                     navigate,
                                     loadUrl = { browserViewModel.loadUrl(it) },
+                                    insertShortcut = { browserViewModel.insertShortcut(it) },
+                                    deleteShortcut = { browserViewModel.deleteShortcut(it) },
                                     state.articleLoadingState,
                                     state.articleList,
-                                    state.shortcutsLoadingState,
                                     state.shortcutList
                                 )
 
@@ -220,11 +233,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                         state.currentTabIndex,
                         state.tabs,
                         state.navBarText,
-                        state.showToolbarTooltip,
                         navigate,
-                        setShowToolbarTooltip = { shown ->
-                            browserViewModel.setShowToolbarTooltip(shown)
-                        },
                         updateUrl = { url ->
                             browserViewModel.updateUrl(url)
                         },
@@ -329,9 +338,7 @@ fun NavBarContainer(
     currentTabIndex: Int?,
     tabs: List<Tab>,
     navBarText: String,
-    showToolbarTooltip: Boolean,
     navigate: (screen: Screen) -> Unit,
-    setShowToolbarTooltip: (shown: Boolean) -> Unit,
     updateUrl: (url: String) -> Unit,
     submitUrl: () -> Unit,
     goBack: () -> Unit,
@@ -350,15 +357,6 @@ fun NavBarContainer(
                 DragAnchors.End at 0f
             }
         )
-    }
-    if (showToolbarTooltip) {
-        LaunchedEffect(anchoredDraggableState) {
-            snapshotFlow { anchoredDraggableState.currentValue == DragAnchors.Start }
-                .distinctUntilChanged()
-                .collect {
-                    setShowToolbarTooltip(it)
-                }
-        }
     }
     Box(
         modifier = Modifier.fillMaxSize()
@@ -389,33 +387,6 @@ fun NavBarContainer(
                     )
                 }
         ) {
-            // TODO: move this to be fixed on homepage?
-            // TODO: only show on first swipe
-            if (showToolbarTooltip) {
-                Box(
-                    modifier = Modifier
-                        .graphicsLayer {
-                            alpha =
-                                ((anchoredDraggableState.offset / heightPx) * 2 - 1).coerceAtLeast(
-                                    0f
-                                )
-                        }
-                        .background(
-                            MaterialTheme.colorScheme.surfaceContainer,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(8.dp)
-                        .align(Alignment.CenterHorizontally)
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(Icons.Default.ArrowDropUp, null)
-                        // TODO: blocks navbar
-                        Text(stringResource(R.string.swipe_up_on_toolbar_for_tabs))
-                    }
-                }
-            }
             Spacer(modifier = Modifier.height(8.dp))
             Column(
                 modifier = Modifier
@@ -671,9 +642,10 @@ fun NavBar(
 fun HomeScreen(
     navigate: (screen: Screen) -> Unit,
     loadUrl: (url: String) -> Unit,
+    insertShortcut: (shortcut: Shortcut) -> Unit,
+    deleteShortcut: (shortcut: Shortcut) -> Unit,
     articleLoadingState: ArticleLoadingState,
     articleList: List<Article>,
-    shortcutsLoadingState: ShortcutsLoadingState,
     shortcutList: List<Shortcut>
 ) {
     Column(
@@ -704,7 +676,7 @@ fun HomeScreen(
         Newsfeed(navigate, loadUrl, articleLoadingState, articleList)
         Spacer(modifier = Modifier.height(16.dp))
         // TODO: landscape mode issue
-        ShortcutsRow(loadUrl, shortcutsLoadingState, shortcutList)
+        ShortcutsRow(loadUrl, shortcutList, insertShortcut, deleteShortcut)
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
@@ -841,36 +813,100 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
 }
 
 // TODO: database
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShortcutsRow(loadUrl: (url: String) -> Unit, shortcutsLoadingState: ShortcutsLoadingState, shortcutList: List<Shortcut>) {
-    when (shortcutsLoadingState) {
-        ShortcutsLoadingState.LOADING -> {
-            // TODO: define specific section height to avoid shift as shortcuts load
-            // TODO: maybe have 'fake' icons and transition in to hide loading - load is from disk so should be much faster than above news section
-        }
-        ShortcutsLoadingState.SUCCESS -> {
-            Column {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
-                ) {
-                    items(shortcutList) {
-                        Shortcut(Icons.Default.Web, it.name) {
-                            loadUrl(it.url)
-                        }
-                    }
-                    item {
-                        Shortcut(Icons.Default.Add, "") {}
-                    }
-                }
+fun ShortcutsRow(loadUrl: (url: String) -> Unit, shortcutList: List<Shortcut>, insertShortcut: (shortcut: Shortcut) -> Unit, deleteShortcut: (shortcut: Shortcut) -> Unit) {
+    var createDialogOpen by remember { mutableStateOf(false) }
+
+    if(createDialogOpen) {
+        // TODO: preview icon once URL entered
+        CreateShortcutDialog(closeDialog = { createDialogOpen = false }, insertShortcut = insertShortcut)
+    }
+
+    // TODO: edit/delete dialog
+
+    Column {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp)
+        ) {
+            items(shortcutList) {
+                Shortcut(Icons.Default.Web, it.name, onClick =  {
+                    loadUrl(it.url)
+                }, onLongClick = {
+                    deleteShortcut(it)
+                })
+            }
+            item {
+                Shortcut(Icons.Default.Add, "", onClick = {
+                    createDialogOpen = true
+                }, onLongClick = {
+                    // TODO: long press action or disable for this?
+                })
             }
         }
-        ShortcutsLoadingState.ERROR -> { }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Shortcut(icon: ImageVector, text: String, onClick: () -> Unit) {
+fun CreateShortcutDialog(closeDialog: () -> Unit, insertShortcut: (Shortcut) -> Unit) {
+    BasicAlertDialog(
+        onDismissRequest = { },
+        properties = DialogProperties(), content = {
+            Surface(
+                modifier = Modifier.wrapContentWidth().wrapContentHeight(),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = AlertDialogDefaults.TonalElevation,
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text =
+                            "Create shortcut",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    val nameState = rememberTextFieldState()
+                    OutlinedTextField(
+                        state = nameState,
+                        label = { Text("Name") }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val urlState = rememberTextFieldState()
+                    // TODO: correct input type
+                    OutlinedTextField(
+                        state = urlState,
+                        label = { Text("URL") }
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = {
+                                closeDialog()
+                            },
+                        ) {
+                            Text("Cancel")
+                        }
+                        TextButton(
+                            onClick = {
+                                insertShortcut(Shortcut(url = urlState.text.toString(), name = nameState.text.toString()))
+                                closeDialog()
+                            },
+                        ) {
+                            Text("Confirm")
+                        }
+                    }
+                }
+            }
+        })
+}
+
+@Composable
+fun Shortcut(icon: ImageVector, text: String, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val haptics = LocalHapticFeedback.current
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -884,7 +920,13 @@ fun Shortcut(icon: ImageVector, text: String, onClick: () -> Unit) {
                     )
                 }
                 .clip(CircleShape)
-                .clickable { onClick() },
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onLongClick()
+                    }
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(

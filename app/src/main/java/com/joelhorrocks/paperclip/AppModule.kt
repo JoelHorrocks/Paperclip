@@ -7,11 +7,12 @@ import androidx.datastore.dataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.room.Room
 import com.joelhorrocks.paperclip.news.NewsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepositoryImpl
-import com.joelhorrocks.paperclip.shortcuts.Shortcut
-import com.joelhorrocks.paperclip.shortcuts.ShortcutsRepository
+import com.joelhorrocks.paperclip.shortcuts.ShortcutDao
+import com.joelhorrocks.paperclip.shortcuts.ShortcutRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -41,6 +42,20 @@ class AppModule {
 
     @Provides
     @Singleton
+    fun provideAppDatabase(@ApplicationContext appContext: Context): AppDatabase {
+        return Room.databaseBuilder(
+            appContext,
+            AppDatabase::class.java, "paperclip-database"
+        ).build()
+    }
+
+    @Provides
+    fun provideShortcutDao(appDatabase: AppDatabase): ShortcutDao {
+        return appDatabase.shortcutDao()
+    }
+
+    @Provides
+    @Singleton
     fun provideSettingsRepository(dataStore: DataStore<Preferences>): SettingsRepository {
         return SettingsRepositoryImpl(dataStore)
     }
@@ -53,8 +68,8 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun provideShortcutsRepository(): ShortcutsRepository {
-        return ShortcutsRepository()
+    fun provideShortcutsRepository(shortcutDao: ShortcutDao): ShortcutRepository {
+        return ShortcutRepository(shortcutDao)
     }
 
     @Provides

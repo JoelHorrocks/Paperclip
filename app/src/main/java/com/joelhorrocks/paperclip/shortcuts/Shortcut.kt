@@ -3,7 +3,8 @@ package com.joelhorrocks.paperclip.shortcuts
 import java.util.Date
 
 data class Shortcut(
-    val id: Int,
+    // TODO: make this nullable or separate db and shorcut ID and use a UUID?
+    val id: Int? = null,
     val url: String,
     val name: String,
 )
