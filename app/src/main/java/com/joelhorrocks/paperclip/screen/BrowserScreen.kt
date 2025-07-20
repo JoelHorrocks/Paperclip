@@ -1,10 +1,7 @@
 package com.joelhorrocks.paperclip.screen
 
-import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -32,7 +29,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
@@ -47,17 +43,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DashboardCustomize
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Newspaper
-import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Web
@@ -74,7 +66,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -94,7 +85,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -102,12 +92,10 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -129,14 +117,11 @@ import com.joelhorrocks.paperclip.BrowserViewModel
 import com.joelhorrocks.paperclip.HOME_URL
 import com.joelhorrocks.paperclip.R
 import com.joelhorrocks.paperclip.Screen
-import com.joelhorrocks.paperclip.ShortcutsLoadingState
-import com.joelhorrocks.paperclip.TabController
 import com.joelhorrocks.paperclip.model.Prompt
 import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.news.Article
 import com.joelhorrocks.paperclip.shortcuts.Shortcut
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
@@ -162,27 +147,8 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
             // TODO: cap number of max prompts at once
             // TODO: handle prompts from background tab? switch tab?
             for (prompt in webPromptQueue.reversed()) {
-                when (prompt) {
-                    is Prompt.Alert -> {
-                        WebAlertPrompt(
-                            { webPromptQueue.remove(prompt) },
-                            // TODO: handle null
-                            prompt.title!!,
-                            prompt.message!!,
-                            Icons.Default.Web
-                        )
-                    }
-
-                    is Prompt.Button -> {
-                        WebButtonPrompt(
-                            { webPromptQueue.remove(prompt); prompt.onAction(it) },
-                            prompt.title!!,
-                            prompt.message!!,
-                            Icons.Default.Web
-                        )
-                    }
-
-                    else -> {}
+                WebPrompt(prompt) {
+                    webPromptQueue.remove(prompt)
                 }
             }
             Box(
@@ -193,32 +159,29 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                         focusManager.clearFocus()
                     }
             ) {
-                Box(
-                    modifier = Modifier.padding(innerPadding)
+                Column(
+                    modifier = Modifier
+                        .padding(bottom = 52.dp)
+                        .fillMaxHeight()
+                        .padding(innerPadding)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(bottom = 52.dp)
-                            .fillMaxHeight()
-                    ) {
-                        Box {
-                            when (state.currentUrl) {
-                                HOME_URL -> HomeScreen(
-                                    navigate,
-                                    loadUrl = { browserViewModel.loadUrl(it) },
-                                    insertShortcut = { browserViewModel.insertShortcut(it) },
-                                    deleteShortcut = { browserViewModel.deleteShortcut(it) },
-                                    state.articleLoadingState,
-                                    state.articleList,
-                                    state.shortcutList
-                                )
+                    Box {
+                        when (state.currentUrl) {
+                            HOME_URL -> HomeScreen(
+                                navigate,
+                                loadUrl = { browserViewModel.loadUrl(it) },
+                                insertShortcut = { browserViewModel.insertShortcut(it) },
+                                deleteShortcut = { browserViewModel.deleteShortcut(it) },
+                                state.articleLoadingState,
+                                state.articleList,
+                                state.shortcutList
+                            )
 
-                                else -> BrowserScreen(state.currentTab?.geckoSession)
-                            }
+                            else -> BrowserScreen(state.currentTab?.geckoSession)
                         }
-                        BackHandler {
-                            browserViewModel.goBack()
-                        }
+                    }
+                    BackHandler {
+                        browserViewModel.goBack()
                     }
                 }
                 val layoutDirection = LocalLayoutDirection.current
@@ -256,6 +219,32 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                 }
             }
         }
+    }
+}
+
+@Composable
+fun WebPrompt(prompt: Prompt?, removePrompt: (prompt: Prompt) -> Unit) {
+    when (prompt) {
+        is Prompt.Alert -> {
+            WebAlertPrompt(
+                { removePrompt(prompt) },
+                // TODO: handle null
+                prompt.title!!,
+                prompt.message!!,
+                Icons.Default.Web
+            )
+        }
+
+        is Prompt.Button -> {
+            WebButtonPrompt(
+                { removePrompt(prompt); prompt.onAction(it) },
+                prompt.title!!,
+                prompt.message!!,
+                Icons.Default.Web
+            )
+        }
+
+        else -> {}
     }
 }
 
@@ -765,7 +754,10 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(4.dp).clip(RoundedCornerShape(32.dp)).background(Color.White.copy(alpha = 0.7f))
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .clip(RoundedCornerShape(32.dp))
+                            .background(Color.White.copy(alpha = 0.7f))
                     ) {
                         IconButton(onClick = { }) {
                             Icon(
@@ -782,7 +774,7 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
                     }
                 }
             }
-            Column (
+            Column(
                 modifier = Modifier.background(CardDefaults.outlinedCardColors().containerColor)
             ) {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -798,7 +790,9 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
                     Icon(
                         Icons.Default.Newspaper,
                         null,
-                        modifier = Modifier.padding(start = 8.dp).size(16.dp)
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .size(16.dp)
                     )
                     Text(
                         article.publisher,
@@ -815,12 +809,20 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
 // TODO: database
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShortcutsRow(loadUrl: (url: String) -> Unit, shortcutList: List<Shortcut>, insertShortcut: (shortcut: Shortcut) -> Unit, deleteShortcut: (shortcut: Shortcut) -> Unit) {
+fun ShortcutsRow(
+    loadUrl: (url: String) -> Unit,
+    shortcutList: List<Shortcut>,
+    insertShortcut: (shortcut: Shortcut) -> Unit,
+    deleteShortcut: (shortcut: Shortcut) -> Unit
+) {
     var createDialogOpen by remember { mutableStateOf(false) }
 
-    if(createDialogOpen) {
+    if (createDialogOpen) {
         // TODO: preview icon once URL entered
-        CreateShortcutDialog(closeDialog = { createDialogOpen = false }, insertShortcut = insertShortcut)
+        CreateShortcutDialog(
+            closeDialog = { createDialogOpen = false },
+            insertShortcut = insertShortcut
+        )
     }
 
     // TODO: edit/delete dialog
@@ -831,7 +833,7 @@ fun ShortcutsRow(loadUrl: (url: String) -> Unit, shortcutList: List<Shortcut>, i
             contentPadding = PaddingValues(horizontal = 8.dp)
         ) {
             items(shortcutList) {
-                Shortcut(Icons.Default.Web, it.name, onClick =  {
+                Shortcut(Icons.Default.Web, it.name, onClick = {
                     loadUrl(it.url)
                 }, onLongClick = {
                     deleteShortcut(it)
@@ -855,7 +857,9 @@ fun CreateShortcutDialog(closeDialog: () -> Unit, insertShortcut: (Shortcut) -> 
         onDismissRequest = { },
         properties = DialogProperties(), content = {
             Surface(
-                modifier = Modifier.wrapContentWidth().wrapContentHeight(),
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .wrapContentHeight(),
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 tonalElevation = AlertDialogDefaults.TonalElevation,
@@ -892,7 +896,12 @@ fun CreateShortcutDialog(closeDialog: () -> Unit, insertShortcut: (Shortcut) -> 
                         }
                         TextButton(
                             onClick = {
-                                insertShortcut(Shortcut(url = urlState.text.toString(), name = nameState.text.toString()))
+                                insertShortcut(
+                                    Shortcut(
+                                        url = urlState.text.toString(),
+                                        name = nameState.text.toString()
+                                    )
+                                )
                                 closeDialog()
                             },
                         ) {

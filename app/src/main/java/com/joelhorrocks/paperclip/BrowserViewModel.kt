@@ -21,10 +21,6 @@ enum class ArticleLoadingState {
     LOADING, SUCCESS, ERROR
 }
 
-enum class ShortcutsLoadingState {
-    LOADING, SUCCESS, ERROR
-}
-
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
     private val tabController: TabController,
@@ -135,17 +131,6 @@ class BrowserViewModel @Inject constructor(
         val currentTab = _uiState.value.currentTab
         if (currentTab != null) {
             tabController.goBack(currentTab)
-        }
-    }
-
-    fun setShowToolbarTooltip(shown: Boolean) {
-        _uiState.update {
-            it.copy(
-                showToolbarTooltip = shown
-            )
-        }
-        viewModelScope.launch {
-            settingsRepository.setShowDrawerTooltip(shown)
         }
     }
 
