@@ -106,6 +106,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -142,7 +143,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                     webPromptQueue.add(it)
                 }
             }
-            // TODO: cap number of max prompts at once
+            // TODO: cap number of max prompts at once - give user prompt, then lock web prompts until user loads another page or clicks on a link
             // TODO: handle prompts from background tab? switch tab?
             for (prompt in webPromptQueue.reversed()) {
                 WebPrompt(prompt) {
@@ -191,6 +192,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                     )
                 ) {
                     NavBarContainer(
+                        innerPadding.calculateBottomPadding(),
                         state.currentTabIndex,
                         state.tabs,
                         state.navBarText,
@@ -322,6 +324,7 @@ fun WebButtonPrompt(
 
 @Composable
 fun NavBarContainer(
+    bottomPadding: Dp,
     currentTabIndex: Int?,
     tabs: List<Tab>,
     navBarText: String,
@@ -333,15 +336,15 @@ fun NavBarContainer(
     selectTab: (index: Int) -> Unit,
     closeTab: (index: Int) -> Unit
 ) {
-    // TODO: fix white gap when drawer open
     val heightPx = with(LocalDensity.current) { 348.dp.toPx() }
+    val bottomPaddingPx = with(LocalDensity.current) { bottomPadding.toPx() }
     val scope = rememberCoroutineScope()
     val anchoredDraggableState = remember {
         AnchoredDraggableState(
             initialValue = DragAnchors.Start,
             anchors = DraggableAnchors {
-                DragAnchors.Start at heightPx
-                DragAnchors.End at 0f
+                DragAnchors.Start at (heightPx + bottomPaddingPx)
+                DragAnchors.End at bottomPaddingPx
             }
         )
     }
@@ -398,8 +401,8 @@ fun NavBarContainer(
                     })
                 Box(
                     modifier = Modifier
-                        .height(348.dp)
-                        .padding(start = 4.dp, end = 4.dp)
+                        .height(348.dp + bottomPadding)
+                        .padding(start = 4.dp, end = 4.dp, bottom = bottomPadding)
                         .graphicsLayer {
                             alpha =
                                 ((1 - (anchoredDraggableState.offset / heightPx)).coerceAtMost(0.2f) / 0.2f)
