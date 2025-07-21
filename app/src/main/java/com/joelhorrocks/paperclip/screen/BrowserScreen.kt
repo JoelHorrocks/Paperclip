@@ -112,8 +112,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.joelhorrocks.paperclip.ArticleLoadingState
-import com.joelhorrocks.paperclip.BrowserViewModel
 import com.joelhorrocks.paperclip.HOME_URL
 import com.joelhorrocks.paperclip.R
 import com.joelhorrocks.paperclip.Screen
@@ -732,7 +730,6 @@ fun Newsfeed(
 fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
     OutlinedCard(
         modifier = Modifier
-            .fillMaxWidth()
             .clip(CardDefaults.shape)
             .height(242.dp)
             .width(216.dp)
@@ -775,7 +772,9 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
                 }
             }
             Column(
-                modifier = Modifier.background(CardDefaults.outlinedCardColors().containerColor)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(CardDefaults.outlinedCardColors().containerColor)
             ) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(

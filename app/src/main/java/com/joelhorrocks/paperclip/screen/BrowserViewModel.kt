@@ -1,7 +1,10 @@
-package com.joelhorrocks.paperclip
+package com.joelhorrocks.paperclip.screen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.joelhorrocks.paperclip.HOME_URL
+import com.joelhorrocks.paperclip.SEARCH_BASE_URI
+import com.joelhorrocks.paperclip.TabController
 import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.news.Article
 import com.joelhorrocks.paperclip.news.NewsRepository
@@ -134,7 +137,7 @@ class BrowserViewModel @Inject constructor(
         }
     }
 
-    fun fetchArticles() {
+    private fun fetchArticles() {
         _uiState.update {
             it.copy(
                 articleLoadingState = ArticleLoadingState.LOADING

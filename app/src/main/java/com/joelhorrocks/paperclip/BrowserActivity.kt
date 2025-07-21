@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entry
@@ -16,7 +15,9 @@ import androidx.navigation3.runtime.rememberSavedStateNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.navigation3.ui.rememberSceneSetupNavEntryDecorator
 import com.joelhorrocks.paperclip.screen.BrowserScreen
+import com.joelhorrocks.paperclip.screen.BrowserViewModel
 import com.joelhorrocks.paperclip.screen.NewsfeedScreen
+import com.joelhorrocks.paperclip.screen.NewsfeedViewModel
 import com.joelhorrocks.paperclip.screen.SettingsScreen
 import com.joelhorrocks.paperclip.screen.SetupScreen
 import com.joelhorrocks.paperclip.settings.SettingsRepository
@@ -74,7 +75,8 @@ class MainActivity() : ComponentActivity() {
                         }
                     }
                     entry<Screen.Newsfeed> {
-                        NewsfeedScreen(back = { backStack.removeLastOrNull() })
+                        val newsfeedViewModel: NewsfeedViewModel by viewModels()
+                        NewsfeedScreen(newsfeedViewModel, back = { backStack.removeLastOrNull() })
                     }
                     entry<Screen.Settings> {
                         SettingsScreen(back = { backStack.removeLastOrNull() })
