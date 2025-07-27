@@ -1,7 +1,12 @@
-A work in progress GeckoView-based Android web browser built from the ground up with Jetpack Compose.
+# 📎 Paperclip
 
-<img width="255" alt="Screenshot 2025-02-10 at 22 05 15" src="https://github.com/user-attachments/assets/6a45b3c2-28e3-4d5a-bab6-be1ebf6782f4" />
+A work-in-progress modern Android web browser built from scratch with GeckoView and Jetpack Compose, designed for ergonomic use with intuitive gesture controls.
 
+## Screenshots
+
+<img width="210" src="https://github.com/user-attachments/assets/6b5fcace-137c-421a-934f-e92e85adf5e1" />
+<img width="210" src="https://github.com/user-attachments/assets/59349527-1bb0-49d1-8621-ada1e45e981c" />
+<img width="210" src="https://github.com/user-attachments/assets/605e2d41-1c68-4489-b43a-54f3b16424d9" />
 
 ## Status
 
