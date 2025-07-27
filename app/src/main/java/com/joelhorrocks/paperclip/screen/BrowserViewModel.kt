@@ -173,7 +173,7 @@ class BrowserViewModel @Inject constructor(
     }
 
     fun saveTabs() {
-        tabRepository.saveTabs(tabRepository.tabsState.value.tabs)
+        tabRepository.saveTabs()
     }
 
     fun loadTabs() {

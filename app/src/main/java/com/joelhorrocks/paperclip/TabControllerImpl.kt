@@ -58,7 +58,11 @@ class TabControllerImpl(
                             session.navigationDelegate = createNavigationDelegate()
                             session.promptDelegate = createPromptDelegate()
                             session.contentDelegate = createContentDelegate()
-                            session.loadUri(tab.currentUrl)
+                            session.progressDelegate = createProgressDelegate()
+                            GeckoSession.SessionState.fromString(tab.sessionSnapshot)?.let {
+                                // TODO: some way to control session snapshots to ensure it matches with engine
+                                session.restoreState(it)
+                            } ?: session.loadUri(tab.currentUrl)
                         }
                     }
                     for (id in toClose) {
@@ -71,6 +75,16 @@ class TabControllerImpl(
                 }
         }
     }
+
+    private fun createProgressDelegate(): GeckoSession.ProgressDelegate =
+        object : GeckoSession.ProgressDelegate {
+            // TODO: find a way to avoid having to store this in the tab object - it's not required anywhere in the UI so no point holding it there
+            // TODO: we could immediately write this to disk in tabRepository and bypass tab entirely?
+            override fun onSessionStateChange(p0: GeckoSession, p1: GeckoSession.SessionState) {
+                super.onSessionStateChange(p0, p1)
+                tabRepository.setSessionSnapshot(tabRepository.tabsState.value.tabs.first { sessions.value[it.id] == p0 }.id, p1.toString())
+            }
+        }
 
     private fun createContentDelegate(): GeckoSession.ContentDelegate =
         object : GeckoSession.ContentDelegate {
@@ -146,6 +160,9 @@ class TabControllerImpl(
             val newSession = GeckoSession().apply {
                 // TODO: add additional delegates
                 navigationDelegate = createNavigationDelegate()
+                promptDelegate = createPromptDelegate()
+                contentDelegate = createContentDelegate()
+                progressDelegate = createProgressDelegate()
             }
             val tab = Tab()
             _sessions.update {

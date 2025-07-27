@@ -7,5 +7,6 @@ import java.util.UUID
 data class Tab(
     val id: String = UUID.randomUUID().toString(),
     val isLoading: Boolean = false,
-    val currentUrl: String = ""
+    val currentUrl: String = "",
+    val sessionSnapshot: String? = null
 )

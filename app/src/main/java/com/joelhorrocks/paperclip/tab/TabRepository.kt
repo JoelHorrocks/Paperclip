@@ -1,6 +1,5 @@
 package com.joelhorrocks.paperclip.tab
 
-import android.util.Log
 import com.joelhorrocks.paperclip.HOME_URL
 import com.joelhorrocks.paperclip.model.Tab
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,6 +10,8 @@ import kotlinx.coroutines.flow.update
 class TabRepository(
     private val tabLocalDataSource: TabLocalDataSource
 ) {
+    // TODO: recoverable tabs system (two lists??)
+
     data class TabsState(
         val tabs: List<Tab> = emptyList(),
         val currentTab: String? = null
@@ -107,8 +108,15 @@ class TabRepository(
         }
     }
 
-    fun saveTabs(tabs: List<Tab>) {
-        tabLocalDataSource.saveTabs(tabs)
+    fun setSessionSnapshot(tabId: String, snapshot: String?) {
+        update(tabId) {
+            it.copy(sessionSnapshot = snapshot)
+        }
+    }
+
+    // TODO: replace string with tabId
+    fun saveTabs() {
+        tabLocalDataSource.saveTabs(tabsState.value.tabs)
     }
 
     fun loadTabs() {
