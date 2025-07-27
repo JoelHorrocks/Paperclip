@@ -8,7 +8,6 @@ import org.mozilla.geckoview.GeckoSession
 
 interface TabController {
     val sessions: StateFlow<Map<String, GeckoSession>>
-    val currentTabIndex: StateFlow<Int?>
     val prompts: SharedFlow<Prompt>
 
     fun loadUrl(tab: Tab, url: String)

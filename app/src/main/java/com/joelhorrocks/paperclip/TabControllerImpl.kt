@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -29,12 +30,9 @@ import javax.inject.Singleton
 class TabControllerImpl(
     private val browserEngine: BrowserEngine,
     private val tabRepository: TabRepository
-): TabController {
+) : TabController {
     private val _sessions = MutableStateFlow(mapOf<String, GeckoSession>())
     override val sessions = _sessions.asStateFlow()
-
-    private val _currentTabIndex = MutableStateFlow<Int?>(null)
-    override val currentTabIndex = _currentTabIndex.asStateFlow()
 
     private val _prompts = MutableSharedFlow<Prompt>()
     override val prompts = _prompts.asSharedFlow()
@@ -42,46 +40,52 @@ class TabControllerImpl(
     init {
         // TODO: move to correct place
         CoroutineScope(Dispatchers.Main).launch {
-            tabRepository.tabs.collect { tabs ->
-                for(tab in tabs) {
-                    if(!sessions.value.containsKey(tab.id)) {
+            tabRepository.tabs
+                .map { tabs -> tabs.map { it.id }.toSet() }
+                .distinctUntilChanged()
+                .collect { tabIds ->
+                    val toCreate = tabIds - sessions.value.keys
+                    val toClose = sessions.value.keys - tabIds
+                    // TODO: batch updates?
+                    for (id in toCreate) {
+                        val tab = tabRepository.tabs.value.first { it.id == id }
                         browserEngine.createSession().let { session ->
-                            _sessions.update {
-                                it + Pair(tab.id, session)
-                            }
                             session.navigationDelegate = createNavigationDelegate()
                             session.promptDelegate = createPromptDelegate()
                             session.contentDelegate = createContentDelegate()
                             session.loadUri(tab.currentUrl)
+                            _sessions.update {
+                                it + Pair(tab.id, session)
+                            }
                         }
                     }
-                }
-                for(session in sessions.value) {
-                    if(!tabs.map { it.id }.contains(session.key)) {
-                        session.value.close()
+                    for (id in toClose) {
+                        val session = sessions.value[id]
+                        session?.close()
                         _sessions.update {
-                            it.filter { comparisonSession -> comparisonSession.key != session.key }
+                            it.filter { comparisonSession -> comparisonSession.key != id }
                         }
                     }
                 }
-            }
         }
     }
 
-    private fun createContentDelegate(): GeckoSession.ContentDelegate = object: GeckoSession.ContentDelegate {
-        override fun onKill(session: GeckoSession) {
-            super.onKill(session)
-            val killedTab = tabRepository.tabs.value.firstOrNull { sessions.value[it.id] == session }
-            if(killedTab == null || killedTab != _currentTabIndex.value?.let { tabRepository.tabs.value[it] }) {
-                return
+    private fun createContentDelegate(): GeckoSession.ContentDelegate =
+        object : GeckoSession.ContentDelegate {
+            override fun onKill(session: GeckoSession) {
+                super.onKill(session)
+                val killedTab =
+                    tabRepository.tabs.value.firstOrNull { sessions.value[it.id] == session }
+                if (killedTab == null || killedTab != tabRepository.tabs.value.first { it.id == tabRepository.currentTab.value }) {
+                    return
+                }
+
+                browserEngine.openSession(session)
+                session.loadUri(killedTab.currentUrl)
             }
-
-            browserEngine.openSession(session)
-            session.loadUri(killedTab.currentUrl)
         }
-    }
 
-    private fun createPromptDelegate(): PromptDelegate = object: PromptDelegate {
+    private fun createPromptDelegate(): PromptDelegate = object : PromptDelegate {
         override fun onAlertPrompt(
             session: GeckoSession,
             prompt: PromptDelegate.AlertPrompt
@@ -99,7 +103,7 @@ class TabControllerImpl(
             val response = GeckoResult<PromptDelegate.PromptResponse?>()
             CoroutineScope(Dispatchers.Main).launch {
                 _prompts.emit(Prompt.Button(prompt.title, prompt.message) {
-                    val promptResponse = prompt.confirm(if(it) POSITIVE else NEGATIVE)
+                    val promptResponse = prompt.confirm(if (it) POSITIVE else NEGATIVE)
                     response.complete(promptResponse)
                 })
             }
@@ -107,7 +111,7 @@ class TabControllerImpl(
         }
     }
 
-    private fun createNavigationDelegate(): NavigationDelegate = object: NavigationDelegate {
+    private fun createNavigationDelegate(): NavigationDelegate = object : NavigationDelegate {
         // TODO: could background tab location changes incorrectly change navbar location?
         override fun onLocationChange(
             session: GeckoSession,
@@ -161,8 +165,8 @@ class TabControllerImpl(
         // TODO: will need to notify webextension support when tab is selected when I add it
         val newSession = sessions.value[tabId]
         // TODO: handle
-        if(newSession == null) return
-        if(!newSession.isOpen) {
+        if (newSession == null) return
+        if (!newSession.isOpen) {
             browserEngine.openSession(newSession)
             newSession.loadUri(tabRepository.tabs.value.first { it.id == tabId }.currentUrl)
         }
