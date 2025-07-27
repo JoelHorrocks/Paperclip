@@ -1,5 +1,6 @@
 package com.joelhorrocks.paperclip.screen
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joelhorrocks.paperclip.HOME_URL
@@ -63,20 +64,20 @@ class BrowserViewModel @Inject constructor(
             // TODO: cache or otherwise persist when navigating away then back
             fetchArticles()
             combine(
-                tabRepository.tabs,
-                tabRepository.currentTab,
+                tabRepository.tabsState,
+                tabController.sessions,
                 settingsRepository.showDrawerTooltip,
                 // TODO: add distinctUntilChanged() in appropriate place
                 shortcutRepository.getAllShortcuts()
-            ) { tabs, currentTab, showDrawerTooltip, shortcuts ->
+            ) { tabsState, sessions, showDrawerTooltip, shortcuts ->
                 _uiState.update {
                     it.copy(
-                        tabs = tabs,
-                        currentTabIndex = tabs.indexOfFirst { tab -> tab.id == currentTab },
-                        currentSession = tabController.sessions.value[currentTab],
+                        tabs = tabsState.tabs,
+                        currentTabIndex = tabsState.tabs.indexOfFirst { tab -> tab.id == tabsState.currentTab },
+                        currentSession = sessions[tabsState.currentTab],
                         // TODO: handle not matching
-                        navBarText = if ( tabs.first { tab -> tab.id == currentTab }.currentUrl == HOME_URL) "" else tabs.first { tab -> tab.id == currentTab }.currentUrl,
-                        isLoading = tabs.first { tab -> tab.id == currentTab }.isLoading,
+                        navBarText = if (tabsState.tabs.first { tab -> tab.id == tabsState.currentTab }.currentUrl == HOME_URL) "" else tabsState.tabs.first { tab -> tab.id == tabsState.currentTab }.currentUrl,
+                        isLoading = tabsState.tabs.first { tab -> tab.id == tabsState.currentTab }.isLoading,
                         showToolbarTooltip = showDrawerTooltip,
                         shortcutList = shortcuts
                     )
@@ -169,5 +170,13 @@ class BrowserViewModel @Inject constructor(
         viewModelScope.launch {
             shortcutRepository.deleteShortcut(shortcut)
         }
+    }
+
+    fun saveTabs() {
+        tabRepository.saveTabs(tabRepository.tabsState.value.tabs)
+    }
+
+    fun loadTabs() {
+        tabRepository.loadTabs()
     }
 }

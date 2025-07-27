@@ -200,6 +200,12 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                         state.tabs,
                         state.navBarText,
                         navigate,
+                        saveTabs = {
+                            browserViewModel.saveTabs()
+                        },
+                        loadTabs = {
+                            browserViewModel.loadTabs()
+                        },
                         updateUrl = { url ->
                             browserViewModel.updateUrl(url)
                         },
@@ -332,6 +338,8 @@ fun NavBarContainer(
     tabs: List<Tab>,
     navBarText: String,
     navigate: (screen: Screen) -> Unit,
+    saveTabs: () -> Unit,
+    loadTabs: () -> Unit,
     updateUrl: (url: String) -> Unit,
     submitUrl: () -> Unit,
     goBack: () -> Unit,
@@ -392,6 +400,8 @@ fun NavBarContainer(
                 // TODO: swipe left and right to switch tab
                 NavBar(
                     navBarText,
+                    saveTabs,
+                    loadTabs,
                     updateUrl,
                     submitUrl,
                     goBack,
@@ -501,6 +511,8 @@ fun NavBarContainer(
 @Composable
 fun NavBar(
     navBarText: String,
+    saveTabs: () -> Unit,
+    loadTabs: () -> Unit,
     updateUrl: (url: String) -> Unit,
     submitUrl: () -> Unit,
     goBack: () -> Unit,
@@ -630,6 +642,7 @@ fun NavBar(
                 DropdownMenuItem(
                     text = { Text("Save") },
                     onClick = {
+                        saveTabs()
                         moreMenuExpanded = false
                     },
                     leadingIcon = {
@@ -642,23 +655,12 @@ fun NavBar(
                 DropdownMenuItem(
                     text = { Text("Load") },
                     onClick = {
+                        loadTabs()
                         moreMenuExpanded = false
                     },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.FileOpen,
-                            contentDescription = null
-                        )
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("Clear") },
-                    onClick = {
-                        moreMenuExpanded = false
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
                             contentDescription = null
                         )
                     }

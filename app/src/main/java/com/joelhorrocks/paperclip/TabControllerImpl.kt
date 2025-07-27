@@ -1,5 +1,6 @@
 package com.joelhorrocks.paperclip
 
+import android.util.Log
 import com.joelhorrocks.paperclip.model.Prompt
 import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.tab.TabRepository
@@ -39,24 +40,25 @@ class TabControllerImpl(
 
     init {
         // TODO: move to correct place
+        // TODO: replace with some sort of 'ensureSession' system?
         CoroutineScope(Dispatchers.Main).launch {
-            tabRepository.tabs
-                .map { tabs -> tabs.map { it.id }.toSet() }
+            tabRepository.tabsState
+                .map { state -> state.tabs.map { it.id }.toSet() }
                 .distinctUntilChanged()
                 .collect { tabIds ->
                     val toCreate = tabIds - sessions.value.keys
                     val toClose = sessions.value.keys - tabIds
                     // TODO: batch updates?
                     for (id in toCreate) {
-                        val tab = tabRepository.tabs.value.first { it.id == id }
+                        val tab = tabRepository.tabsState.value.tabs.first { it.id == id }
                         browserEngine.createSession().let { session ->
+                            _sessions.update {
+                                it + Pair(tab.id, session)
+                            }
                             session.navigationDelegate = createNavigationDelegate()
                             session.promptDelegate = createPromptDelegate()
                             session.contentDelegate = createContentDelegate()
                             session.loadUri(tab.currentUrl)
-                            _sessions.update {
-                                it + Pair(tab.id, session)
-                            }
                         }
                     }
                     for (id in toClose) {
@@ -75,8 +77,8 @@ class TabControllerImpl(
             override fun onKill(session: GeckoSession) {
                 super.onKill(session)
                 val killedTab =
-                    tabRepository.tabs.value.firstOrNull { sessions.value[it.id] == session }
-                if (killedTab == null || killedTab != tabRepository.tabs.value.first { it.id == tabRepository.currentTab.value }) {
+                    tabRepository.tabsState.value.tabs.firstOrNull { sessions.value[it.id] == session }
+                if (killedTab == null || killedTab != tabRepository.tabsState.value.tabs.first { it.id == tabRepository.tabsState.value.currentTab }) {
                     return
                 }
 
@@ -168,7 +170,7 @@ class TabControllerImpl(
         if (newSession == null) return
         if (!newSession.isOpen) {
             browserEngine.openSession(newSession)
-            newSession.loadUri(tabRepository.tabs.value.first { it.id == tabId }.currentUrl)
+            newSession.loadUri(tabRepository.tabsState.value.tabs.first { it.id == tabId }.currentUrl)
         }
         tabRepository.setCurrentTab(tabId)
     }

@@ -13,6 +13,7 @@ import com.joelhorrocks.paperclip.settings.SettingsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepositoryImpl
 import com.joelhorrocks.paperclip.shortcuts.ShortcutDao
 import com.joelhorrocks.paperclip.shortcuts.ShortcutRepository
+import com.joelhorrocks.paperclip.tab.TabLocalDataSource
 import com.joelhorrocks.paperclip.tab.TabRepository
 import dagger.Module
 import dagger.Provides
@@ -69,8 +70,14 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun provideTabRepository(): TabRepository {
-        return TabRepository()
+    fun provideTabLocalDataSource(@ApplicationContext appContext: Context): TabLocalDataSource {
+        return TabLocalDataSource(appContext)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTabRepository(tabLocalDataSource: TabLocalDataSource): TabRepository {
+        return TabRepository(tabLocalDataSource)
     }
 
     @Provides
