@@ -13,6 +13,7 @@ import com.joelhorrocks.paperclip.settings.SettingsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepositoryImpl
 import com.joelhorrocks.paperclip.shortcuts.ShortcutDao
 import com.joelhorrocks.paperclip.shortcuts.ShortcutRepository
+import com.joelhorrocks.paperclip.tab.TabRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -68,13 +69,19 @@ class AppModule {
 
     @Provides
     @Singleton
+    fun provideTabRepository(): TabRepository {
+        return TabRepository()
+    }
+
+    @Provides
+    @Singleton
     fun provideShortcutsRepository(shortcutDao: ShortcutDao): ShortcutRepository {
         return ShortcutRepository(shortcutDao)
     }
 
     @Provides
     @Singleton
-    fun provideTabController(browserEngine: BrowserEngine): TabController {
-        return TabControllerImpl(browserEngine)
+    fun provideTabController(browserEngine: BrowserEngine, tabRepository: TabRepository): TabController {
+        return TabControllerImpl(browserEngine, tabRepository)
     }
 }

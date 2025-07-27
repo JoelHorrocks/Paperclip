@@ -2,12 +2,17 @@ package com.joelhorrocks.paperclip
 
 import com.joelhorrocks.paperclip.model.Prompt
 import com.joelhorrocks.paperclip.model.Tab
+import com.joelhorrocks.paperclip.tab.TabRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.mozilla.geckoview.AllowOrDeny
@@ -21,9 +26,12 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
-class TabControllerImpl constructor(private val browserEngine: BrowserEngine): TabController {
-    private val _tabs = MutableStateFlow(listOf<Tab>())
-    override val tabs = _tabs.asStateFlow()
+class TabControllerImpl(
+    private val browserEngine: BrowserEngine,
+    private val tabRepository: TabRepository
+): TabController {
+    private val _sessions = MutableStateFlow(mapOf<String, GeckoSession>())
+    override val sessions = _sessions.asStateFlow()
 
     private val _currentTabIndex = MutableStateFlow<Int?>(null)
     override val currentTabIndex = _currentTabIndex.asStateFlow()
@@ -32,25 +40,39 @@ class TabControllerImpl constructor(private val browserEngine: BrowserEngine): T
     override val prompts = _prompts.asSharedFlow()
 
     init {
-        createInitialTab()
-    }
-
-    private fun createInitialTab() {
-        browserEngine.createSession().let { session ->
-            _tabs.value = listOf(Tab(geckoSession = session))
-            session.navigationDelegate = createNavigationDelegate()
-            session.promptDelegate = createPromptDelegate()
-            session.contentDelegate = createContentDelegate()
-            session.loadUri(HOME_URL)
-            _currentTabIndex.value = 0
+        // TODO: move to correct place
+        CoroutineScope(Dispatchers.Main).launch {
+            tabRepository.tabs.collect { tabs ->
+                for(tab in tabs) {
+                    if(!sessions.value.containsKey(tab.id)) {
+                        browserEngine.createSession().let { session ->
+                            _sessions.update {
+                                it + Pair(tab.id, session)
+                            }
+                            session.navigationDelegate = createNavigationDelegate()
+                            session.promptDelegate = createPromptDelegate()
+                            session.contentDelegate = createContentDelegate()
+                            session.loadUri(tab.currentUrl)
+                        }
+                    }
+                }
+                for(session in sessions.value) {
+                    if(!tabs.map { it.id }.contains(session.key)) {
+                        session.value.close()
+                        _sessions.update {
+                            it.filter { comparisonSession -> comparisonSession.key != session.key }
+                        }
+                    }
+                }
+            }
         }
     }
 
     private fun createContentDelegate(): GeckoSession.ContentDelegate = object: GeckoSession.ContentDelegate {
         override fun onKill(session: GeckoSession) {
             super.onKill(session)
-            val killedTab = _tabs.value.firstOrNull { it.geckoSession == session }
-            if(killedTab == null || killedTab != _currentTabIndex.value?.let { _tabs.value[it] }) {
+            val killedTab = tabRepository.tabs.value.firstOrNull { sessions.value[it.id] == session }
+            if(killedTab == null || killedTab != _currentTabIndex.value?.let { tabRepository.tabs.value[it] }) {
                 return
             }
 
@@ -95,11 +117,8 @@ class TabControllerImpl constructor(private val browserEngine: BrowserEngine): T
         ) {
             super.onLocationChange(session, url, perms, hasUserGesture)
 
-            _tabs.update { tabs ->
-                tabs.map { tab ->
-                    if (tab.geckoSession == session) tab.copy(currentUrl = url ?: "")
-                    else tab
-                }
+            tabRepository.update(sessions.value.filter { it.value == session }.keys.first()) {
+                it.copy(currentUrl = url ?: "")
             }
         }
 
@@ -109,80 +128,59 @@ class TabControllerImpl constructor(private val browserEngine: BrowserEngine): T
             session: GeckoSession,
             request: NavigationDelegate.LoadRequest
         ): GeckoResult<AllowOrDeny>? {
-            _tabs.update { tabs ->
-                tabs.map { tab ->
-                    if (tab.geckoSession == session) tab.copy(currentUrl = request.uri)
-                    else tab
-                }
+            tabRepository.update(sessions.value.filter { it.value == session }.keys.first()) {
+                it.copy(currentUrl = request.uri)
             }
 
             return super.onLoadRequest(session, request)
         }
 
         override fun onNewSession(session: GeckoSession, uri: String): GeckoResult<GeckoSession?>? {
+            // TODO: fix!!! - use some sort of ensureSession??
             val newSession = GeckoSession().apply {
+                // TODO: add additional delegates
                 navigationDelegate = createNavigationDelegate()
             }
-            // TODO: consolidate with createTab?
-            _tabs.update {
-                it + Tab(geckoSession = newSession)
+            val tab = Tab()
+            _sessions.update {
+                it + Pair(tab.id, newSession)
             }
-            _currentTabIndex.value = _tabs.value.size - 1
-            // TODO: tab gets killed sometimes although below should prevent it happening?
+            tabRepository.insertTab(tab)
+            tabRepository.setCurrentTab(tab.id)
+
             return GeckoResult.fromValue(newSession)
         }
     }
 
     override fun loadUrl(tab: Tab, url: String) {
-        tab.geckoSession.loadUri(url)
+        sessions.value[tab.id]?.loadUri(url)
     }
 
-    override fun selectTab(index: Int) {
+    override fun selectTab(tabId: String) {
         // TODO: verify this is correct behaviour, should we split into own session switch function?
         // TODO: will need to notify webextension support when tab is selected when I add it
-        val newSession = _tabs.value[index].geckoSession
+        val newSession = sessions.value[tabId]
+        // TODO: handle
+        if(newSession == null) return
         if(!newSession.isOpen) {
             browserEngine.openSession(newSession)
-            newSession.loadUri(_tabs.value[index].currentUrl)
+            newSession.loadUri(tabRepository.tabs.value.first { it.id == tabId }.currentUrl)
         }
-        _currentTabIndex.value = index
+        tabRepository.setCurrentTab(tabId)
     }
 
-    override fun closeTab(index: Int) {
-        if (index < 0 || index >= _tabs.value.size) return
+    override fun closeTab(tabId: String) {
+        val sessionToClose = sessions.value[tabId]
+        sessionToClose?.close()
 
-        val sessionToClose = _tabs.value[index].geckoSession
-        sessionToClose.close()
-
-        if(_tabs.value.size == 1) {
-            createInitialTab()
-            _tabs.update { tabs ->
-                tabs.filterIndexed { i, _ -> i != 1 }
-            }
-            return
-        } else if(_currentTabIndex.value!! >= index && (index > 0 || _currentTabIndex.value!! > 0)) {
-            _currentTabIndex.value = _currentTabIndex.value!! - 1
-        }
-
-        _tabs.update { tabs ->
-            tabs.filterIndexed { i, _ -> i != index }
-        }
+        tabRepository.close(tabId)
     }
 
     override fun createTab() {
-        browserEngine.createSession().let { session ->
-            _tabs.update {
-                it + Tab(geckoSession = session)
-            }
-            session.navigationDelegate = createNavigationDelegate()
-            session.promptDelegate = createPromptDelegate()
-            session.contentDelegate = createContentDelegate()
-            session.loadUri(HOME_URL)
-            _currentTabIndex.value = _tabs.value.size - 1
-        }
+        tabRepository.open(HOME_URL)
     }
 
     override fun goBack(tab: Tab) {
-        tab.geckoSession.goBack()
+        sessions.value[tab.id]?.goBack()
     }
 }

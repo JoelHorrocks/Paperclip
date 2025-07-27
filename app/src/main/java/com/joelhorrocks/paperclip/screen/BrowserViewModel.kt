@@ -11,6 +11,7 @@ import com.joelhorrocks.paperclip.news.NewsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepository
 import com.joelhorrocks.paperclip.shortcuts.Shortcut
 import com.joelhorrocks.paperclip.shortcuts.ShortcutRepository
+import com.joelhorrocks.paperclip.tab.TabRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.mozilla.geckoview.GeckoSession
 import javax.inject.Inject
 
 enum class ArticleLoadingState {
@@ -29,12 +31,14 @@ class BrowserViewModel @Inject constructor(
     private val tabController: TabController,
     private val settingsRepository: SettingsRepository,
     private val newsRepository: NewsRepository,
-    private val shortcutRepository: ShortcutRepository
+    private val shortcutRepository: ShortcutRepository,
+    private val tabRepository: TabRepository
 ) : ViewModel() {
 
     data class BrowserUiState(
         val tabs: List<Tab> = emptyList(),
         val currentTabIndex: Int? = 0,
+        val currentSession: GeckoSession? = null,
         val navBarText: String = "",
         val isLoading: Boolean = false,
         val showToolbarTooltip: Boolean = false,
@@ -59,20 +63,20 @@ class BrowserViewModel @Inject constructor(
             // TODO: cache or otherwise persist when navigating away then back
             fetchArticles()
             combine(
-                tabController.tabs,
-                tabController.currentTabIndex,
+                tabRepository.tabs,
+                tabRepository.currentTab,
                 settingsRepository.showDrawerTooltip,
                 // TODO: add distinctUntilChanged() in appropriate place
                 shortcutRepository.getAllShortcuts()
-            ) { tabs, currentIndex, showDrawerTooltip, shortcuts ->
+            ) { tabs, currentTab, showDrawerTooltip, shortcuts ->
                 _uiState.update {
                     it.copy(
                         tabs = tabs,
-                        currentTabIndex = currentIndex,
-                        navBarText = currentIndex?.let { index ->
-                            if (tabs[index].currentUrl == HOME_URL) "" else tabs[index].currentUrl
-                        } ?: "",
-                        isLoading = currentIndex?.let { index -> tabs[index].isLoading } ?: false,
+                        currentTabIndex = tabs.indexOfFirst { tab -> tab.id == currentTab },
+                        currentSession = tabController.sessions.value[currentTab],
+                        // TODO: handle not matching
+                        navBarText = if ( tabs.first { tab -> tab.id == currentTab }.currentUrl == HOME_URL) "" else tabs.first { tab -> tab.id == currentTab }.currentUrl,
+                        isLoading = tabs.first { tab -> tab.id == currentTab }.isLoading,
                         showToolbarTooltip = showDrawerTooltip,
                         shortcutList = shortcuts
                     )
@@ -118,12 +122,12 @@ class BrowserViewModel @Inject constructor(
         }
     }
 
-    fun selectTab(index: Int) {
-        tabController.selectTab(index)
+    fun selectTab(tabId: String) {
+        tabController.selectTab(tabId)
     }
 
-    fun closeTab(index: Int) {
-        tabController.closeTab(index)
+    fun closeTab(tabId: String) {
+        tabController.closeTab(tabId)
     }
 
     fun createTab() {
@@ -144,7 +148,7 @@ class BrowserViewModel @Inject constructor(
             )
         }
         viewModelScope.launch {
-            // TODO: errorhandling
+            // TODO: error handling
             val articles = newsRepository.fetchLatestNews()
             _uiState.update {
                 it.copy(

@@ -47,9 +47,12 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DashboardCustomize
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Newspaper
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Web
@@ -176,7 +179,7 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                                 state.shortcutList
                             )
 
-                            else -> BrowserScreen(state.currentTab?.geckoSession)
+                            else -> BrowserScreen(state.currentSession)
                         }
                     }
                     BackHandler {
@@ -209,11 +212,11 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                         createTab = {
                             browserViewModel.createTab()
                         },
-                        selectTab = { index ->
-                            browserViewModel.selectTab(index)
+                        selectTab = { tabId ->
+                            browserViewModel.selectTab(tabId)
                         },
-                        closeTab = { index ->
-                            browserViewModel.closeTab(index)
+                        closeTab = { tabId ->
+                            browserViewModel.closeTab(tabId)
                         }
                     )
                 }
@@ -333,8 +336,8 @@ fun NavBarContainer(
     submitUrl: () -> Unit,
     goBack: () -> Unit,
     createTab: () -> Unit,
-    selectTab: (index: Int) -> Unit,
-    closeTab: (index: Int) -> Unit
+    selectTab: (tabId: String) -> Unit,
+    closeTab: (tabId: String) -> Unit
 ) {
     val heightPx = with(LocalDensity.current) { 348.dp.toPx() }
     val bottomPaddingPx = with(LocalDensity.current) { bottomPadding.toPx() }
@@ -421,7 +424,7 @@ fun NavBarContainer(
                                     .padding(4.dp)
                                     .clip(CardDefaults.shape)
                                     .clickable {
-                                        selectTab(index)
+                                        selectTab(tab.id)
                                         scope.launch {
                                             anchoredDraggableState.animateTo(DragAnchors.Start)
                                         }
@@ -455,7 +458,7 @@ fun NavBarContainer(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         IconButton(
                                             onClick = {
-                                                closeTab(index)
+                                                closeTab(tab.id)
                                             }
                                         ) {
                                             Icon(
@@ -606,7 +609,7 @@ fun NavBar(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = stringResource(R.string.new_tab)
+                            contentDescription = null
                         )
                     }
                 )
@@ -619,7 +622,44 @@ fun NavBar(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings"
+                            contentDescription = null
+                        )
+                    }
+                )
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text("Save") },
+                    onClick = {
+                        moreMenuExpanded = false
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Save,
+                            contentDescription = null
+                        )
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Load") },
+                    onClick = {
+                        moreMenuExpanded = false
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.FileOpen,
+                            contentDescription = null
+                        )
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Clear") },
+                    onClick = {
+                        moreMenuExpanded = false
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null
                         )
                     }
                 )
