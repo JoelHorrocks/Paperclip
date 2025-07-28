@@ -908,13 +908,13 @@ fun CreateShortcutDialog(closeDialog: () -> Unit, insertShortcut: (Shortcut) -> 
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 tonalElevation = AlertDialogDefaults.TonalElevation,
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(24.dp)) {
                     Text(
                         text =
                             "Create shortcut",
                         style = MaterialTheme.typography.headlineSmall
                     )
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     val nameState = rememberTextFieldState()
                     OutlinedTextField(
                         state = nameState,
@@ -922,14 +922,17 @@ fun CreateShortcutDialog(closeDialog: () -> Unit, insertShortcut: (Shortcut) -> 
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     val urlState = rememberTextFieldState()
-                    // TODO: correct input type
                     OutlinedTextField(
                         state = urlState,
-                        label = { Text("URL") }
+                        label = { Text("URL") },
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            keyboardType = KeyboardType.Uri
+                        )
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     Row(
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         TextButton(
                             onClick = {
