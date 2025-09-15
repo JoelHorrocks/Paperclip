@@ -1,4 +1,4 @@
-# 📎 Paperclip
+# 📎Paperclip
 
 A work-in-progress modern Android web browser built from scratch with GeckoView and Jetpack Compose, designed for ergonomic use with intuitive gesture controls.
 
