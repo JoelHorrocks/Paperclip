@@ -1,6 +1,5 @@
 package com.joelhorrocks.paperclip.news
 
-import androidx.compose.ui.res.painterResource
 import com.joelhorrocks.paperclip.R
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat

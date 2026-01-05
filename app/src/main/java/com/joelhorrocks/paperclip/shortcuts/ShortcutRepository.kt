@@ -1,6 +1,5 @@
 package com.joelhorrocks.paperclip.shortcuts
 
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject

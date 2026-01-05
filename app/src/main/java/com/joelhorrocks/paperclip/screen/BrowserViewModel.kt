@@ -1,6 +1,5 @@
 package com.joelhorrocks.paperclip.screen
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joelhorrocks.paperclip.HOME_URL
