@@ -2,6 +2,7 @@ package com.joelhorrocks.paperclip.screen
 
 import android.text.format.DateFormat.getDateFormat
 import android.text.format.DateFormat.getTimeFormat
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AppBarWithSearch
@@ -38,6 +40,8 @@ import androidx.compose.material3.SearchBarState
 import androidx.compose.material3.SearchBarValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -66,40 +70,91 @@ fun HistoryScreen(historyViewModel: HistoryViewModel, back: () -> Unit) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
-                val searchBarState = rememberSearchBarState()
-                AppBarWithSearch(
-                    state = searchBarState,
-                    inputField = {
-                        InputField(
-                            searchBarState = searchBarState,
-                            searchText = state.searchQuery,
-                            setSearchText = {
-                                historyViewModel.searchHistory(it)
+                var showSearch by remember { mutableStateOf(false) }
+                // TODO: animation issues: status bar color animates less slowly and search bar is slightly taller
+                Crossfade(
+                    targetState = showSearch
+                ) { searchVisible ->
+                    if (!searchVisible) {
+                        TopAppBar(
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                titleContentColor = MaterialTheme.colorScheme.primary,
+                            ),
+                            title = {
+                                Text(stringResource(R.string.history))
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = {
+                                    back()
+                                }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+                                }
+                            },
+                            actions = {
+                                IconButton(
+                                    onClick = {
+                                        showSearch = true
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        clearDialogOpen = true
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = null
+                                    )
+                                }
                             }
                         )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { back() }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.back)
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = {
-                                clearDialogOpen = true
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                // TODO: string resource
-                                contentDescription = null
-                            )
-                        }
-                    },
-                )
+                    } else {
+                        val searchBarState = rememberSearchBarState()
+                        AppBarWithSearch(
+                            state = searchBarState,
+                            inputField = {
+                                InputField(
+                                    searchBarState = searchBarState,
+                                    searchText = state.searchQuery,
+                                    setSearchText = {
+                                        historyViewModel.searchHistory(it)
+                                    },
+                                    closeSearchBar = {
+                                        showSearch = false
+                                        historyViewModel.searchHistory("")
+                                    }
+                                )
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = { back() }) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = stringResource(R.string.back)
+                                    )
+                                }
+                            },
+                            actions = {
+                                IconButton(
+                                    onClick = {
+                                        clearDialogOpen = true
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        // TODO: string resource
+                                        contentDescription = null
+                                    )
+                                }
+                            },
+                        )
+                    }
+                }
             }
         ) { innerPadding ->
             if (clearDialogOpen) {
@@ -229,7 +284,8 @@ fun ClearHistoryConfirm(
 fun InputField(
     searchBarState: SearchBarState,
     searchText: String,
-    setSearchText: (String) -> Unit = { }
+    setSearchText: (String) -> Unit = { },
+    closeSearchBar: () -> Unit = { }
 ) {
     // TODO: search content type (treated as normal text not an URL)
     val scope = rememberCoroutineScope()
@@ -252,16 +308,14 @@ fun InputField(
         colors = appBarWithSearchColors().searchBarColors.inputFieldColors,
         onSearch = { },
         trailingIcon = {
-            if (searchText.isNotEmpty()) {
-                IconButton(
-                    onClick = { setSearchText("") }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = null
-                    )
-                }
-            } else null
+            IconButton(
+                onClick = { closeSearchBar() }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = null
+                )
+            }
         },
         placeholder = {
             Text(modifier = Modifier.clearAndSetSemantics {}, text = "Search")
