@@ -12,4 +12,6 @@ sealed class Screen: NavKey {
     data object Newsfeed : Screen()
     @Serializable
     data object Settings : Screen()
+    @Serializable
+    data object History : Screen()
 }

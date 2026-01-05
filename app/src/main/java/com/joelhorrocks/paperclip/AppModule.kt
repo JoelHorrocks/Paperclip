@@ -8,6 +8,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.room.Room
+import com.joelhorrocks.paperclip.history.HistoryDao
+import com.joelhorrocks.paperclip.history.HistoryRepository
 import com.joelhorrocks.paperclip.news.NewsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepositoryImpl
@@ -57,6 +59,11 @@ class AppModule {
     }
 
     @Provides
+    fun provideHistoryDao(appDatabase: AppDatabase): HistoryDao {
+        return appDatabase.historyDao()
+    }
+
+    @Provides
     @Singleton
     fun provideSettingsRepository(dataStore: DataStore<Preferences>): SettingsRepository {
         return SettingsRepositoryImpl(dataStore)
@@ -88,7 +95,13 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun provideTabController(browserEngine: BrowserEngine, tabRepository: TabRepository): TabController {
-        return TabControllerImpl(browserEngine, tabRepository)
+    fun provideHistoryRepository(historyDao: HistoryDao): HistoryRepository {
+        return HistoryRepository(historyDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTabController(browserEngine: BrowserEngine, tabRepository: TabRepository, historyRepository: HistoryRepository): TabController {
+        return TabControllerImpl(browserEngine, tabRepository, historyRepository)
     }
 }

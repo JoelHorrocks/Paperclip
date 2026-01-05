@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DashboardCustomize
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileOpen
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Newspaper
@@ -584,6 +585,7 @@ fun NavBar(
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
+        // TODO: use a list for moreMenu and use a reusable component
         var moreMenuExpanded by remember { mutableStateOf(false) }
         Box {
             IconButton(
@@ -634,6 +636,19 @@ fun NavBar(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Settings,
+                            contentDescription = null
+                        )
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.history)) },
+                    onClick = {
+                        moreMenuExpanded = false
+                        navigate(Screen.History)
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.History,
                             contentDescription = null
                         )
                     }

@@ -1,6 +1,8 @@
 package com.joelhorrocks.paperclip
 
 import android.util.Log
+import com.joelhorrocks.paperclip.history.HistoryEntry
+import com.joelhorrocks.paperclip.history.HistoryRepository
 import com.joelhorrocks.paperclip.model.Prompt
 import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.tab.TabRepository
@@ -22,6 +24,7 @@ import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSession.PromptDelegate
+import org.mozilla.geckoview.GeckoSession.HistoryDelegate
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.ButtonPrompt.Type.NEGATIVE
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.ButtonPrompt.Type.POSITIVE
 import java.util.UUID
@@ -30,7 +33,8 @@ import javax.inject.Singleton
 
 class TabControllerImpl(
     private val browserEngine: BrowserEngine,
-    private val tabRepository: TabRepository
+    private val tabRepository: TabRepository,
+    private val historyRepository: HistoryRepository
 ) : TabController {
     private val _sessions = MutableStateFlow(mapOf<String, GeckoSession>())
     override val sessions = _sessions.asStateFlow()
@@ -56,6 +60,7 @@ class TabControllerImpl(
                                 it + Pair(tab.id, session)
                             }
                             session.navigationDelegate = createNavigationDelegate()
+                            session.historyDelegate = createHistoryDelegate()
                             session.promptDelegate = createPromptDelegate()
                             session.contentDelegate = createContentDelegate()
                             session.progressDelegate = createProgressDelegate()
@@ -127,6 +132,43 @@ class TabControllerImpl(
         }
     }
 
+    private fun createHistoryDelegate(): HistoryDelegate = object : HistoryDelegate {
+        override fun onVisited(
+            session: GeckoSession,
+            url: String,
+            lastVisitedURL: String?,
+            flags: Int
+        ): GeckoResult<Boolean?>? {
+            // TODO: store visit type then filter in UI?
+            if (
+                // skip about URLs
+                url.startsWith("about:") ||
+                // skip redirects
+                flags and HistoryDelegate.VISIT_REDIRECT_SOURCE_PERMANENT != 0 ||
+                flags and HistoryDelegate.VISIT_REDIRECT_SOURCE != 0 ||
+                // skip iframe navigations
+                flags and HistoryDelegate.VISIT_TOP_LEVEL == 0 ||
+                // skip errors
+                flags and HistoryDelegate.VISIT_UNRECOVERABLE_ERROR != 0 ||
+                // skip reloads
+                lastVisitedURL?.let { it == url } ?: false
+                    ) return GeckoResult.fromValue(false)
+
+            CoroutineScope(Dispatchers.IO).launch {
+                historyRepository.insertHistoryEntries(
+                    HistoryEntry(
+                        id = null,
+                        url = url,
+                        title = "", // TODO: get title
+                        timestamp = System.currentTimeMillis()
+                    )
+                )
+            }
+
+            return super.onVisited(session, url, lastVisitedURL, flags)
+        }
+    }
+
     private fun createNavigationDelegate(): NavigationDelegate = object : NavigationDelegate {
         // TODO: could background tab location changes incorrectly change navbar location?
         override fun onLocationChange(
@@ -160,6 +202,7 @@ class TabControllerImpl(
             val newSession = GeckoSession().apply {
                 // TODO: add additional delegates
                 navigationDelegate = createNavigationDelegate()
+                historyDelegate = createHistoryDelegate()
                 promptDelegate = createPromptDelegate()
                 contentDelegate = createContentDelegate()
                 progressDelegate = createProgressDelegate()

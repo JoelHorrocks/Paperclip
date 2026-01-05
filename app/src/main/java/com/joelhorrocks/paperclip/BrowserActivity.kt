@@ -8,14 +8,14 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.entry
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
-import androidx.navigation3.runtime.rememberSavedStateNavEntryDecorator
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import androidx.navigation3.ui.rememberSceneSetupNavEntryDecorator
 import com.joelhorrocks.paperclip.screen.BrowserScreen
 import com.joelhorrocks.paperclip.screen.BrowserViewModel
+import com.joelhorrocks.paperclip.screen.HistoryScreen
+import com.joelhorrocks.paperclip.screen.HistoryViewModel
 import com.joelhorrocks.paperclip.screen.NewsfeedScreen
 import com.joelhorrocks.paperclip.screen.NewsfeedViewModel
 import com.joelhorrocks.paperclip.screen.SettingsScreen
@@ -53,8 +53,7 @@ class MainActivity() : ComponentActivity() {
                 backStack = backStack,
                 onBack = { backStack.removeLastOrNull() },
                 entryDecorators = listOf(
-                    rememberSceneSetupNavEntryDecorator(),
-                    rememberSavedStateNavEntryDecorator(),
+                    rememberSaveableStateHolderNavEntryDecorator(),
                     // TODO: scope to NavEntry or activity? Might depend on how I decide to implement
                     rememberViewModelStoreNavEntryDecorator()
                 ),
@@ -77,6 +76,10 @@ class MainActivity() : ComponentActivity() {
                     entry<Screen.Newsfeed> {
                         val newsfeedViewModel: NewsfeedViewModel by viewModels()
                         NewsfeedScreen(newsfeedViewModel, back = { backStack.removeLastOrNull() })
+                    }
+                    entry<Screen.History> {
+                        val historyViewModel: HistoryViewModel by viewModels()
+                        HistoryScreen(historyViewModel, back = { backStack.removeLastOrNull() })
                     }
                     entry<Screen.Settings> {
                         SettingsScreen(back = { backStack.removeLastOrNull() })

@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 // TODO: combine into bookmarks?
+// TODO: interface
 class ShortcutRepository @Inject constructor(private val shortcutDao: ShortcutDao) {
     fun getAllShortcuts(): Flow<List<Shortcut>> = shortcutDao.getAll().map { entities -> entities.map{ Shortcut(it.id, it.url, it.name) } }
 
