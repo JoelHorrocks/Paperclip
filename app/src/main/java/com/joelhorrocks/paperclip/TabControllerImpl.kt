@@ -1,5 +1,6 @@
 package com.joelhorrocks.paperclip
 
+import android.util.Log
 import com.joelhorrocks.paperclip.history.HistoryEntry
 import com.joelhorrocks.paperclip.history.HistoryRepository
 import com.joelhorrocks.paperclip.model.Prompt
@@ -34,6 +35,11 @@ class TabControllerImpl(
 
     private val _prompts = MutableSharedFlow<Prompt>()
     override val prompts = _prompts.asSharedFlow()
+
+    // GeckoView loads about:blank on session creation before we can set our desired URL
+    // See https://github.com/mozilla-mobile/android-components/issues/403
+    // TODO: If we create our own session object per tab, we can track this state there instead with a single boolean
+    private val pastInitialLoad = mutableSetOf<String>()
 
     init {
         // TODO: move to correct place
@@ -172,8 +178,14 @@ class TabControllerImpl(
         ) {
             super.onLocationChange(session, url, perms, hasUserGesture)
 
-            tabRepository.update(sessions.value.filter { it.value == session }.keys.first()) {
-                it.copy(currentUrl = url ?: "")
+            // TODO: better way to get tabId from session or avoid needing it?
+            val tabId = sessions.value.filter { it.value == session }.keys.first()
+            if(tabId in pastInitialLoad) {
+                tabRepository.update(sessions.value.filter { it.value == session }.keys.first()) {
+                    it.copy(currentUrl = url ?: "")
+                }
+            } else {
+                pastInitialLoad.add(tabId)
             }
         }
 
