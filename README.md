@@ -16,7 +16,7 @@ A work-in-progress modern Android web browser built from scratch with GeckoView 
 - [x] Navigation controls (forward, back)
 - [x] Web prompt support
 - [x] Persist browser state
-- [ ] Web history
+- [x] Web history
 - [ ] Fullscreen / new window tab event support
 - [ ] Web permission support
 - [ ] Extension support
