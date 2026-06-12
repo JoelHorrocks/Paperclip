@@ -17,9 +17,11 @@ A work-in-progress modern Android web browser built from scratch with GeckoView 
 - [x] Web prompt support
 - [x] Persist browser state
 - [x] Web history
+- [ ] Settings page
 - [ ] Fullscreen / new window tab event support
 - [ ] Web permission support
 - [ ] Extension support
 - [ ] Private browsing mode
 - [ ] Download manager
-- [ ] Settings page
+- [ ] Local web page translation
+- [ ] Themes
