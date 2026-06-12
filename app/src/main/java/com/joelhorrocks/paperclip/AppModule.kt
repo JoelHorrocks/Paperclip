@@ -10,11 +10,14 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.room.Room
 import com.joelhorrocks.paperclip.history.HistoryDao
 import com.joelhorrocks.paperclip.history.HistoryRepository
+import com.joelhorrocks.paperclip.history.HistoryRepositoryImpl
 import com.joelhorrocks.paperclip.news.NewsRepository
+import com.joelhorrocks.paperclip.news.NewsRepositoryImpl
 import com.joelhorrocks.paperclip.settings.SettingsRepository
 import com.joelhorrocks.paperclip.settings.SettingsRepositoryImpl
 import com.joelhorrocks.paperclip.shortcuts.ShortcutDao
 import com.joelhorrocks.paperclip.shortcuts.ShortcutRepository
+import com.joelhorrocks.paperclip.shortcuts.ShortcutRepositoryImpl
 import com.joelhorrocks.paperclip.tab.TabLocalDataSource
 import com.joelhorrocks.paperclip.tab.TabRepository
 import dagger.Module
@@ -72,7 +75,7 @@ class AppModule {
     @Provides
     @Singleton
     fun provideNewsRepository(): NewsRepository {
-        return NewsRepository()
+        return NewsRepositoryImpl()
     }
 
     @Provides
@@ -90,13 +93,13 @@ class AppModule {
     @Provides
     @Singleton
     fun provideShortcutsRepository(shortcutDao: ShortcutDao): ShortcutRepository {
-        return ShortcutRepository(shortcutDao)
+        return ShortcutRepositoryImpl(shortcutDao)
     }
 
     @Provides
     @Singleton
     fun provideHistoryRepository(historyDao: HistoryDao): HistoryRepository {
-        return HistoryRepository(historyDao)
+        return HistoryRepositoryImpl(historyDao)
     }
 
     @Provides
