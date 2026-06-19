@@ -1,11 +1,11 @@
 package com.joelhorrocks.paperclip
 
-import android.util.Log
 import com.joelhorrocks.paperclip.history.HistoryEntry
 import com.joelhorrocks.paperclip.history.HistoryRepository
 import com.joelhorrocks.paperclip.model.Prompt
 import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.tab.TabRepository
+import com.joelhorrocks.paperclip.tab.TabRepositoryImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
