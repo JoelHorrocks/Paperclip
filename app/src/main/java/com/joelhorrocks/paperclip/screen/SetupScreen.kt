@@ -16,8 +16,10 @@ import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,6 +35,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -47,6 +50,7 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.More
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
@@ -87,6 +91,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -162,14 +167,21 @@ fun Intro(nextPage: () -> Unit, skipSetup: () -> Unit) {
             .padding(horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.weight(0.2f))
         Icon(Icons.Default.AttachFile, null, modifier = Modifier
             .size(92.dp)
-            .rotate(45f))
-        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.displayMedium)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(16.dp))
+            .padding(8.dp)
+            .rotate(45f)
+        )
         Spacer(modifier = Modifier.height(8.dp))
-        Text("A web browser designed for how you actually use your phone. Navigate with one hand, organize tabs effortlessly, and browse the way mobile was meant to be.")
-        Spacer(modifier = Modifier.weight(1f))
+        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.displayMedium)
+        Spacer(modifier = Modifier.height(32.dp))
+        Text(
+            modifier = Modifier.padding(horizontal = 24.dp),
+            text = "A web browser designed for how you actually use your phone. Navigate with one hand, organize tabs effortlessly, and browse the way mobile was meant to be."
+        )
+        Spacer(modifier = Modifier.weight(0.8f))
         Row {
             val size = ButtonDefaults.MediumContainerHeight
             FilledTonalButton(
@@ -193,14 +205,80 @@ fun Intro(nextPage: () -> Unit, skipSetup: () -> Unit) {
     }
 }
 
+@Composable
+fun DeviceFrame(modifier: Modifier, content: @Composable () -> Unit) {
+    Box(
+        modifier = modifier
+            .padding(32.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.Black)
+            .padding(10.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surface)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth().padding(top = 18.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurface)
+                )
+            }
+            content()
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun Tutorial(nextPage: () -> Unit, lastPage: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Column {
+        DeviceFrame(
+            modifier = Modifier.weight(1f)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    shape = RoundedCornerShape(4.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(start = 4.dp)
+                                .size(32.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Paperclip uses gesture controls. Try swiping up on the toolbar to access your tab drawer",
+                            modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
+                        )
+                    }
+                }
+                NavBarContainerTutorial(nextPage)
+            }
+        }
         Row(
             modifier = Modifier
                 .padding(horizontal = 8.dp)
@@ -216,11 +294,6 @@ fun Tutorial(nextPage: () -> Unit, lastPage: () -> Unit) {
             )
             Spacer(modifier = Modifier.weight(1f))
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Paperclip uses gesture controls. Try swiping up on the toolbar to access your tab drawer.",
-            modifier = Modifier
-                .padding(horizontal = 8.dp))
-        NavBarContainerTutorial(nextPage)
     }
 }
 
@@ -344,10 +417,11 @@ fun NavBarContainerTutorial(nextPage: () -> Unit) {
                             )
                         } else {
                             Icon(Icons.Default.Tab, null, modifier = Modifier.size(72.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
+                            FlowRow(
+                                verticalArrangement = Arrangement.Center,
+                                horizontalArrangement = Arrangement.Center,
                             ) {
-                                Text("Open a tab using the more button", style = MaterialTheme.typography.titleLarge)
+                                Text("Open a tab using the more button", style = MaterialTheme.typography.bodyLarge)
                                 Icon(Icons.Default.MoreVert, null)
                             }
                         }

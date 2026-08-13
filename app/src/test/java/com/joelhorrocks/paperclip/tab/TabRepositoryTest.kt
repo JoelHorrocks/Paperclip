@@ -81,5 +81,4 @@ class TabRepositoryTest {
 }
 
 private val TabRepository.tabs get() = tabsState.value.tabs
-// TODO: do a proper currentTab for TabRepository in general (we use this a lot)
-private val TabRepository.currentTab get() = tabs.first { it.id == tabsState.value.currentTab }
+private val TabRepository.currentTab get() = tabsState.value.currentTab!!

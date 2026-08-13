@@ -13,4 +13,25 @@ class PaperclipProgressDelegate(
         super.onSessionStateChange(p0, p1)
         tabRepository.setSessionSnapshot(tabId, p1.toString())
     }
+
+    override fun onProgressChange(p0: GeckoSession, p1: Int) {
+        super.onProgressChange(p0, p1)
+        tabRepository.update(tabId) {
+            it.copy(loadingPercentage = p1 / 100F)
+        }
+    }
+
+    override fun onPageStart(p0: GeckoSession, p1: String) {
+        super.onPageStart(p0, p1)
+        tabRepository.update(tabId) {
+            it.copy(isLoading = true, loadingPercentage = 0F)
+        }
+    }
+
+    override fun onPageStop(p0: GeckoSession, p1: Boolean) {
+        super.onPageStop(p0, p1)
+        tabRepository.update(tabId) {
+            it.copy(isLoading = false)
+        }
+    }
 }

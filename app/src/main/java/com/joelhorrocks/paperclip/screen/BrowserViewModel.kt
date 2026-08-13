@@ -41,6 +41,7 @@ class BrowserViewModel @Inject constructor(
         val currentSession: GeckoSession? = null,
         val navBarText: String = "",
         val isLoading: Boolean = false,
+        val loadingPercentage: Float = 0.0F,
         val showToolbarTooltip: Boolean = false,
         val articleLoadingState: ArticleLoadingState = ArticleLoadingState.LOADING,
         val articleList: List<Article> = listOf(),
@@ -69,14 +70,13 @@ class BrowserViewModel @Inject constructor(
                 // TODO: add distinctUntilChanged() in appropriate place
                 shortcutRepository.getAllShortcuts()
             ) { tabsState, sessions, showDrawerTooltip, shortcuts ->
+                val currentTab = tabsState.currentTab
                 _uiState.update {
                     it.copy(
                         tabs = tabsState.tabs,
-                        currentTabIndex = tabsState.tabs.indexOfFirst { tab -> tab.id == tabsState.currentTab },
-                        currentSession = sessions[tabsState.currentTab],
-                        // TODO: handle not matching
-                        navBarText = if (tabsState.tabs.first { tab -> tab.id == tabsState.currentTab }.currentUrl == HOME_URL) "" else tabsState.tabs.first { tab -> tab.id == tabsState.currentTab }.currentUrl,
-                        isLoading = tabsState.tabs.first { tab -> tab.id == tabsState.currentTab }.isLoading,
+                        currentTabIndex = tabsState.tabs.indexOfFirst { tab -> tab.id == tabsState.currentTabId },
+                        currentSession = tabsState.currentTabId?.let { sessions[it] },
+                        navBarText = if (currentTab?.currentUrl == HOME_URL) "" else currentTab?.currentUrl ?: "",
                         showToolbarTooltip = showDrawerTooltip,
                         shortcutList = shortcuts
                     )

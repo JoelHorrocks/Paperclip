@@ -11,7 +11,7 @@ class PaperclipContentDelegate(
 
     override fun onKill(session: GeckoSession) {
         super.onKill(session)
-        if (tabId != tabRepository.tabsState.value.currentTab) {
+        if (tabId != tabRepository.tabsState.value.currentTabId) {
             return
         }
 

@@ -9,8 +9,11 @@ import kotlinx.coroutines.flow.update
 
 data class TabsState(
     val tabs: List<Tab> = emptyList(),
-    val currentTab: String? = null
-)
+    val currentTabId: String? = null
+) {
+    val currentTab: Tab?
+        get() = tabs.firstOrNull { it.id == currentTabId }
+}
 
 class TabRepositoryImpl(
     private val tabLocalDataSource: TabLocalDataSource
@@ -36,7 +39,7 @@ class TabRepositoryImpl(
         _tabsState.update {
             it.copy(
                 tabs = it.tabs + newTab,
-                currentTab = newTab.id
+                currentTabId = newTab.id
             )
         }
 
@@ -55,7 +58,7 @@ class TabRepositoryImpl(
     override fun close(tabId: String) {
         val tabs = tabsState.value.tabs
         val index = tabs.indexOfFirst { it.id == tabId }
-        val currentTabIndex = tabs.indexOfFirst { it.id == tabsState.value.currentTab }
+        val currentTabIndex = tabs.indexOfFirst { it.id == tabsState.value.currentTabId }
 
         // TODO: clean up now we're using IDs instead of indexes
         if (tabs.size == 1) {
@@ -70,13 +73,13 @@ class TabRepositoryImpl(
         } else if (currentTabIndex == index && index == 0) {
             _tabsState.update {
                 it.copy(
-                    currentTab = tabs[tabs.indexOfFirst { tab -> tab.id == tabsState.value.currentTab } + 1].id
+                    currentTabId = tabs[tabs.indexOfFirst { tab -> tab.id == tabsState.value.currentTabId } + 1].id
                 )
             }
         } else if (currentTabIndex == index) {
             _tabsState.update {
                 it.copy(
-                    currentTab = tabs[tabs.indexOfFirst { tab -> tab.id == tabsState.value.currentTab } - 1].id
+                    currentTabId = tabs[tabs.indexOfFirst { tab -> tab.id == tabsState.value.currentTabId } - 1].id
                 )
             }
         }
@@ -103,7 +106,7 @@ class TabRepositoryImpl(
     override fun setCurrentTab(tabId: String) {
         _tabsState.update {
             it.copy(
-                currentTab = tabId
+                currentTabId = tabId
             )
         }
     }
@@ -126,7 +129,7 @@ class TabRepositoryImpl(
         _tabsState.update {
             it.copy(
                 tabs = tabs,
-                currentTab = tabs[0].id
+                currentTabId = tabs[0].id
             )
         }
     }

@@ -1,6 +1,7 @@
 package com.joelhorrocks.paperclip.screen
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -70,11 +71,14 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.OutlinedTextFieldDefaults.Container
+import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -200,6 +204,8 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                         state.currentTabIndex,
                         state.tabs,
                         state.navBarText,
+                        state.currentTab?.isLoading ?: false,
+                        state.currentTab?.loadingPercentage ?: 0f,
                         navigate,
                         saveTabs = {
                             browserViewModel.saveTabs()
@@ -338,6 +344,8 @@ fun NavBarContainer(
     currentTabIndex: Int?,
     tabs: List<Tab>,
     navBarText: String,
+    isLoading: Boolean,
+    loadingPercentage: Float,
     navigate: (screen: Screen) -> Unit,
     saveTabs: () -> Unit,
     loadTabs: () -> Unit,
@@ -401,6 +409,8 @@ fun NavBarContainer(
                 // TODO: swipe left and right to switch tab
                 NavBar(
                     navBarText,
+                    isLoading,
+                    loadingPercentage,
                     saveTabs,
                     loadTabs,
                     updateUrl,
@@ -510,8 +520,11 @@ fun NavBarContainer(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+// TODO: too many parameters? sort it out
 fun NavBar(
     navBarText: String,
+    isLoading: Boolean,
+    loadingPercentage: Float,
     saveTabs: () -> Unit,
     loadTabs: () -> Unit,
     updateUrl: (url: String) -> Unit,
@@ -521,165 +534,178 @@ fun NavBar(
     navigate: (screen: Screen) -> Unit,
     collapseDrawer: () -> Unit
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .height(52.dp)
-            .padding(4.dp)
-    ) {
-        Spacer(modifier = Modifier.width(4.dp))
-        val interactionSource = remember { MutableInteractionSource() }
-        val focusManager = LocalFocusManager.current
-        BasicTextField(
-            value = navBarText,
-            onValueChange = {
-                // TODO: rename? 'url' was renamed to 'navBarText' as text in navbar may not be an URL and to avoid confusion with current tab URL
-                updateUrl(it)
-            },
-            modifier = Modifier
-                .height(48.dp)
-                .weight(1f),
-            interactionSource = interactionSource,
-            singleLine = true,
-            keyboardActions = KeyboardActions(
-                onGo = {
-                    submitUrl()
-                    focusManager.clearFocus()
-                    collapseDrawer()
-                }
-            ),
-            keyboardOptions = KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Uri,
-                imeAction = ImeAction.Go
+    Column {
+        if(isLoading) {
+            val progress by animateFloatAsState(
+                loadingPercentage,
+                ProgressIndicatorDefaults.ProgressAnimationSpec
             )
-        ) { innerTextField ->
-            OutlinedTextFieldDefaults.DecorationBox(
-                value = navBarText,
-                innerTextField = innerTextField,
-                enabled = true,
-                singleLine = true,
-                visualTransformation = VisualTransformation.None,
-                interactionSource = interactionSource,
-                contentPadding = TextFieldDefaults.contentPaddingWithoutLabel(
-                    top = 0.dp,
-                    bottom = 0.dp,
-                ),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "NavBar Icon"
-                    )
-                },
-                placeholder = {
-                    Text(stringResource(R.string.search_or_enter_address))
-                },
-                container = {
-                    Container(
-                        enabled = true,
-                        isError = false,
-                        interactionSource = interactionSource,
-                        colors = TextFieldDefaults.colors(),
-                        shape = RoundedCornerShape(32.dp),
-                    )
-                }
+            LinearProgressIndicator(
+                { progress },
+                modifier = Modifier.fillMaxWidth(),
+                drawStopIndicator = {}
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        // TODO: use a list for moreMenu and use a reusable component
-        var moreMenuExpanded by remember { mutableStateOf(false) }
-        Box {
-            IconButton(
-                onClick = { moreMenuExpanded = !moreMenuExpanded }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.menu)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .height(52.dp)
+                .padding(4.dp)
+        ) {
+            Spacer(modifier = Modifier.width(4.dp))
+            val interactionSource = remember { MutableInteractionSource() }
+            val focusManager = LocalFocusManager.current
+            BasicTextField(
+                value = navBarText,
+                onValueChange = {
+                    // TODO: rename? 'url' was renamed to 'navBarText' as text in navbar may not be an URL and to avoid confusion with current tab URL
+                    updateUrl(it)
+                },
+                modifier = Modifier
+                    .height(48.dp)
+                    .weight(1f),
+                interactionSource = interactionSource,
+                singleLine = true,
+                keyboardActions = KeyboardActions(
+                    onGo = {
+                        submitUrl()
+                        focusManager.clearFocus()
+                        collapseDrawer()
+                    }
+                ),
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    keyboardType = KeyboardType.Uri,
+                    imeAction = ImeAction.Go
+                )
+            ) { innerTextField ->
+                OutlinedTextFieldDefaults.DecorationBox(
+                    value = navBarText,
+                    innerTextField = innerTextField,
+                    enabled = true,
+                    singleLine = true,
+                    visualTransformation = VisualTransformation.None,
+                    interactionSource = interactionSource,
+                    contentPadding = TextFieldDefaults.contentPaddingWithoutLabel(
+                        top = 0.dp,
+                        bottom = 0.dp,
+                    ),
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "NavBar Icon"
+                        )
+                    },
+                    placeholder = {
+                        Text(stringResource(R.string.search_or_enter_address))
+                    },
+                    container = {
+                        Container(
+                            enabled = true,
+                            isError = false,
+                            interactionSource = interactionSource,
+                            colors = TextFieldDefaults.colors(),
+                            shape = RoundedCornerShape(32.dp),
+                        )
+                    }
                 )
             }
-            DropdownMenu(
-                expanded = moreMenuExpanded,
-                onDismissRequest = { moreMenuExpanded = false }
-            ) {
-                Row {
-                    IconButton(
-                        onClick = {
-                            goBack()
-                            moreMenuExpanded = false
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-                    }
+            Spacer(modifier = Modifier.width(8.dp))
+            // TODO: use a list for moreMenu and use a reusable component
+            var moreMenuExpanded by remember { mutableStateOf(false) }
+            Box {
+                IconButton(
+                    onClick = { moreMenuExpanded = !moreMenuExpanded }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.menu)
+                    )
                 }
-                HorizontalDivider()
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.new_tab)) },
-                    onClick = {
-                        moreMenuExpanded = false
-                        createTab()
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null
-                        )
+                DropdownMenu(
+                    expanded = moreMenuExpanded,
+                    onDismissRequest = { moreMenuExpanded = false }
+                ) {
+                    Row {
+                        IconButton(
+                            onClick = {
+                                goBack()
+                                moreMenuExpanded = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.back)
+                            )
+                        }
                     }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.settings)) },
-                    onClick = {
-                        moreMenuExpanded = false
-                        navigate(Screen.Settings)
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = null
-                        )
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.history)) },
-                    onClick = {
-                        moreMenuExpanded = false
-                        navigate(Screen.History)
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = null
-                        )
-                    }
-                )
-                HorizontalDivider()
-                DropdownMenuItem(
-                    text = { Text("Save") },
-                    onClick = {
-                        saveTabs()
-                        moreMenuExpanded = false
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Save,
-                            contentDescription = null
-                        )
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("Load") },
-                    onClick = {
-                        loadTabs()
-                        moreMenuExpanded = false
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.FileOpen,
-                            contentDescription = null
-                        )
-                    }
-                )
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.new_tab)) },
+                        onClick = {
+                            moreMenuExpanded = false
+                            createTab()
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.settings)) },
+                        onClick = {
+                            moreMenuExpanded = false
+                            navigate(Screen.Settings)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.history)) },
+                        onClick = {
+                            moreMenuExpanded = false
+                            navigate(Screen.History)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.History,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text("Save") },
+                        onClick = {
+                            saveTabs()
+                            moreMenuExpanded = false
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Save,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Load") },
+                        onClick = {
+                            loadTabs()
+                            moreMenuExpanded = false
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.FileOpen,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                }
             }
         }
     }
