@@ -14,4 +14,6 @@ sealed class Screen: NavKey {
     data object Settings : Screen()
     @Serializable
     data object History : Screen()
+    @Serializable
+    data object TranslationModel : Screen()
 }

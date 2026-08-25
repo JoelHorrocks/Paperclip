@@ -11,6 +11,9 @@ import androidx.room.Room
 import com.joelhorrocks.paperclip.history.HistoryDao
 import com.joelhorrocks.paperclip.history.HistoryRepository
 import com.joelhorrocks.paperclip.history.HistoryRepositoryImpl
+import com.joelhorrocks.paperclip.ml.TranslationModelRemoteDataSource
+import com.joelhorrocks.paperclip.ml.TranslationModelRepository
+import com.joelhorrocks.paperclip.ml.TranslationModelRepositoryImpl
 import com.joelhorrocks.paperclip.news.NewsRepository
 import com.joelhorrocks.paperclip.news.NewsRepositoryImpl
 import com.joelhorrocks.paperclip.settings.SettingsRepository
@@ -72,6 +75,18 @@ class AppModule {
     @Singleton
     fun provideSettingsRepository(dataStore: DataStore<Preferences>): SettingsRepository {
         return SettingsRepositoryImpl(dataStore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTranslationModelRepository(translationModelRemoteDataSource: TranslationModelRemoteDataSource): TranslationModelRepository {
+        return TranslationModelRepositoryImpl(translationModelRemoteDataSource)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTranslationModelRemoteDataSource(): TranslationModelRemoteDataSource {
+        return TranslationModelRemoteDataSource()
     }
 
     @Provides

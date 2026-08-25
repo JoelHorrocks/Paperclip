@@ -20,6 +20,8 @@ import com.joelhorrocks.paperclip.screen.NewsfeedScreen
 import com.joelhorrocks.paperclip.screen.NewsfeedViewModel
 import com.joelhorrocks.paperclip.screen.SettingsScreen
 import com.joelhorrocks.paperclip.screen.SetupScreen
+import com.joelhorrocks.paperclip.screen.TranslationModelScreen
+import com.joelhorrocks.paperclip.screen.TranslationModelViewModel
 import com.joelhorrocks.paperclip.settings.SettingsRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -37,6 +39,11 @@ class MainActivity() : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val backStack = rememberNavBackStack(Screen.Home)
+
+            fun back() {
+                backStack.removeLastOrNull()
+            }
+
             val scope = rememberCoroutineScope()
 
             LaunchedEffect(Unit) {
@@ -51,7 +58,7 @@ class MainActivity() : ComponentActivity() {
             // TODO: back button animation for loaded pages / different navigation setup for browser page?
             NavDisplay(
                 backStack = backStack,
-                onBack = { backStack.removeLastOrNull() },
+                onBack = { back() },
                 entryDecorators = listOf(
                     rememberSaveableStateHolderNavEntryDecorator(),
                     // TODO: scope to NavEntry or activity? Might depend on how I decide to implement
@@ -69,20 +76,26 @@ class MainActivity() : ComponentActivity() {
                     }
                     entry<Screen.Home> {
                         val browserViewModel: BrowserViewModel by viewModels()
-                        BrowserScreen(browserViewModel) { screen ->
-                            backStack.add(screen)
+                        BrowserScreen(browserViewModel) {
+                            backStack.add(it)
                         }
                     }
                     entry<Screen.Newsfeed> {
                         val newsfeedViewModel: NewsfeedViewModel by viewModels()
-                        NewsfeedScreen(newsfeedViewModel, back = { backStack.removeLastOrNull() })
+                        NewsfeedScreen(newsfeedViewModel, back = { back() })
                     }
                     entry<Screen.History> {
                         val historyViewModel: HistoryViewModel by viewModels()
-                        HistoryScreen(historyViewModel, back = { backStack.removeLastOrNull() })
+                        HistoryScreen(historyViewModel, back = { back() })
                     }
                     entry<Screen.Settings> {
-                        SettingsScreen(back = { backStack.removeLastOrNull() })
+                        SettingsScreen(back = { back() }) {
+                            backStack.add(it)
+                        }
+                    }
+                    entry<Screen.TranslationModel> {
+                        val translationModelViewModel: TranslationModelViewModel by viewModels()
+                        TranslationModelScreen(translationModelViewModel, back = { back() })
                     }
                 }
             )
