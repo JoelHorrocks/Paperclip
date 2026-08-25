@@ -50,6 +50,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
+import com.joelhorrocks.paperclip.vm.ArticleLoadingState
+import com.joelhorrocks.paperclip.vm.NewsfeedViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable

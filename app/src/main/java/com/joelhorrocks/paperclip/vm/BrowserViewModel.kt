@@ -1,4 +1,4 @@
-package com.joelhorrocks.paperclip.screen
+package com.joelhorrocks.paperclip.vm
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

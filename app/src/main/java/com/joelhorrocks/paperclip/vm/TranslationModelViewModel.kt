@@ -1,9 +1,7 @@
-package com.joelhorrocks.paperclip.screen
+package com.joelhorrocks.paperclip.vm
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.joelhorrocks.paperclip.history.HistoryEntry
-import com.joelhorrocks.paperclip.history.HistoryRepository
 import com.joelhorrocks.paperclip.ml.TranslationModel
 import com.joelhorrocks.paperclip.ml.TranslationModelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel

@@ -59,6 +59,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joelhorrocks.paperclip.R
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
+import com.joelhorrocks.paperclip.vm.HistoryLoadingState
+import com.joelhorrocks.paperclip.vm.HistoryViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
