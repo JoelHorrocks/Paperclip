@@ -10,4 +10,16 @@ class TranslationModelLocalDataSource @Inject constructor(private val translatio
     fun getModels(): Flow<List<TranslationModelEntity>> {
         return translationModelDao.getAll()
     }
+
+    suspend fun insertAll(vararg translationModelEntities: TranslationModelEntity) {
+        translationModelDao.insertAll(*translationModelEntities)
+    }
+
+    suspend fun delete(translationModelEntity: TranslationModelEntity) {
+        translationModelDao.delete(translationModelEntity)
+    }
+
+    suspend fun delete(int: Int) {
+        translationModelDao.delete(int)
+    }
 }

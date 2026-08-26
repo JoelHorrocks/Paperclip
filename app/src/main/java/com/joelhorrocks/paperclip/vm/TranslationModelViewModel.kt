@@ -47,4 +47,17 @@ class TranslationModelViewModel @Inject constructor(
             }
         }
     }
+
+    fun markDownloaded(id: Int) {
+        viewModelScope.launch {
+            translationModelRepository.markDownloaded(id)
+        }
+    }
+
+
+    fun deleteModel(id: Int) {
+        viewModelScope.launch {
+            translationModelRepository.deleteModel(id)
+        }
+    }
 }

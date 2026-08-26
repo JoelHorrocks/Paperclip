@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.ContainedLoadingIndicator
@@ -37,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.joelhorrocks.paperclip.ml.TranslationModelDownloadStatus
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import com.joelhorrocks.paperclip.vm.TranslationModelLoadingState
 import com.joelhorrocks.paperclip.vm.TranslationModelViewModel
@@ -67,49 +69,59 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
                 )
             }
         ) { innerPadding ->
+            // TODO: animate model moving between downloaded / remote
             Column(
                 modifier = Modifier.padding(innerPadding)
             ) {
                 LazyColumn(contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(state.modelList) { model ->
-                        OutlinedCard(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
+                    item {
+                        if(state.modelList.any { it.downloadStatus is TranslationModelDownloadStatus.Downloaded }) {
+                            Text(
+                                text = "Downloaded",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+                    }
+                    items(state.modelList.filter { it.downloadStatus is TranslationModelDownloadStatus.Downloaded }) { model ->
+                        ModelCard(
+                            model.name,
+                            model.fromLanguage.name,
+                            model.toLanguage.name,
+                            model.size.toString(),
+                            {
                                 Icon(
-                                    imageVector = Icons.Default.Translate,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(40.dp)
+                                    imageVector = Icons.Default.Delete,
+                                    null
                                 )
-                                Column(
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text(model.name)
-                                    Text(
-                                        "${model.fromLanguage.name}-${model.toLanguage.name} • ${model.size}B",
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
-                                Spacer(modifier = Modifier.weight(1f))
-                                IconButton(
-                                    onClick = { }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Download,
-                                        null
-                                    )
-                                }
                             }
+                        ) {
+                            translationModelViewModel.deleteModel(model.id)
+                        }
+                    }
+                    item {
+                        if(state.modelList.any { it.downloadStatus is TranslationModelDownloadStatus.Available }) {
+                            Text(
+                                text = "Available",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+                    }
+                    items(state.modelList.filter { it.downloadStatus is TranslationModelDownloadStatus.Available }) { model ->
+                        ModelCard(
+                            model.name,
+                            model.fromLanguage.name,
+                            model.toLanguage.name,
+                            model.size.toString(),
+                            {
+                                Icon(
+                                    imageVector = Icons.Default.Download,
+                                    null
+                                )
+                            }
+                        ) {
+                            translationModelViewModel.markDownloaded(model.id)
                         }
                     }
                     if(state.translationModelLoadingState == TranslationModelLoadingState.LOADING) {
@@ -127,6 +139,46 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ModelCard(name: String, fromLanguage: String, toLanguage: String, size: String, icon: @Composable () -> Unit, onClick: () -> Unit) {
+    OutlinedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Translate,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
+            )
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(name)
+                Text(
+                    "${fromLanguage}-${toLanguage} • ${size}B",
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            IconButton(
+                onClick = { onClick() }
+            ) {
+                icon()
             }
         }
     }

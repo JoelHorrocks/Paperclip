@@ -19,6 +19,9 @@ interface TranslationModelDao {
     @Delete
     suspend fun delete(translationModelEntity: TranslationModelEntity)
 
+    @Query("DELETE FROM translationmodels WHERE id = :int")
+    suspend fun delete(int: Int)
+
     @Query("DELETE FROM translationmodels")
     suspend fun clearAll()
 }
