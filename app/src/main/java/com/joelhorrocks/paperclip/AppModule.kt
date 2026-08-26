@@ -11,9 +11,11 @@ import androidx.room.Room
 import com.joelhorrocks.paperclip.history.HistoryDao
 import com.joelhorrocks.paperclip.history.HistoryRepository
 import com.joelhorrocks.paperclip.history.HistoryRepositoryImpl
-import com.joelhorrocks.paperclip.ml.TranslationModelRemoteDataSource
+import com.joelhorrocks.paperclip.ml.remote.TranslationModelRemoteDataSource
 import com.joelhorrocks.paperclip.ml.TranslationModelRepository
 import com.joelhorrocks.paperclip.ml.TranslationModelRepositoryImpl
+import com.joelhorrocks.paperclip.ml.local.TranslationModelDao
+import com.joelhorrocks.paperclip.ml.local.TranslationModelLocalDataSource
 import com.joelhorrocks.paperclip.news.NewsRepository
 import com.joelhorrocks.paperclip.news.NewsRepositoryImpl
 import com.joelhorrocks.paperclip.settings.SettingsRepository
@@ -72,6 +74,11 @@ class AppModule {
     }
 
     @Provides
+    fun provideTranslationModelDao(appDatabase: AppDatabase): TranslationModelDao {
+        return appDatabase.translationModelDao()
+    }
+
+    @Provides
     @Singleton
     fun provideSettingsRepository(dataStore: DataStore<Preferences>): SettingsRepository {
         return SettingsRepositoryImpl(dataStore)
@@ -79,14 +86,20 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun provideTranslationModelRepository(translationModelRemoteDataSource: TranslationModelRemoteDataSource): TranslationModelRepository {
-        return TranslationModelRepositoryImpl(translationModelRemoteDataSource)
+    fun provideTranslationModelRepository(translationModelLocalDataSource: TranslationModelLocalDataSource, translationModelRemoteDataSource: TranslationModelRemoteDataSource): TranslationModelRepository {
+        return TranslationModelRepositoryImpl(translationModelLocalDataSource, translationModelRemoteDataSource)
     }
 
     @Provides
     @Singleton
     fun provideTranslationModelRemoteDataSource(): TranslationModelRemoteDataSource {
         return TranslationModelRemoteDataSource()
+    }
+
+    @Provides
+    @Singleton
+    fun provideTranslationModelLocalDataSource(translationModelDao: TranslationModelDao): TranslationModelLocalDataSource {
+        return TranslationModelLocalDataSource(translationModelDao)
     }
 
     @Provides

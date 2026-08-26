@@ -1,4 +1,6 @@
-package com.joelhorrocks.paperclip.ml
+package com.joelhorrocks.paperclip.ml.remote
+
+import com.joelhorrocks.paperclip.ml.Language
 
 class TranslationModelRemoteDataSource {
     private val models = listOf(
