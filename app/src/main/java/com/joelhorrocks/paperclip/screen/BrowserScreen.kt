@@ -127,6 +127,7 @@ import com.joelhorrocks.paperclip.model.Prompt
 import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.news.Article
 import com.joelhorrocks.paperclip.shortcuts.Shortcut
+import com.joelhorrocks.paperclip.toTimeAgo
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import com.joelhorrocks.paperclip.vm.ArticleLoadingState
 import com.joelhorrocks.paperclip.vm.BrowserViewModel
@@ -821,7 +822,7 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
         modifier = Modifier
             .clip(CardDefaults.shape)
             .height(242.dp)
-            .width(216.dp)
+            .width(242.dp)
             .clickable {
                 loadUrl(article.url)
             }
@@ -890,7 +891,17 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
                     Text(
                         article.publisher,
                         style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                    Text(
+                        "•",
+                        style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    Text(
+                        article.publicationDate.toTimeAgo(),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(end = 8.dp)
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))

@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.joelhorrocks.paperclip.R
+import com.joelhorrocks.paperclip.toTimeAgo
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import com.joelhorrocks.paperclip.vm.ArticleLoadingState
 import com.joelhorrocks.paperclip.vm.NewsfeedViewModel
@@ -102,7 +103,7 @@ fun NewsfeedScreen(newsfeedViewModel: NewsfeedViewModel, back: () -> Unit) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(CardDefaults.shape)
-                                .height(300.dp)
+                                .height(350.dp)
                                 .clickable {
                                     //TODO: load URL
                                 }
@@ -150,14 +151,13 @@ fun NewsfeedScreen(newsfeedViewModel: NewsfeedViewModel, back: () -> Unit) {
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .background(CardDefaults.outlinedCardColors().containerColor)
+                                        .padding(8.dp)
                                 ) {
-                                    Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         article.headline,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        modifier = Modifier.padding(horizontal = 8.dp)
+                                        style = MaterialTheme.typography.titleLarge
                                     )
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -165,16 +165,24 @@ fun NewsfeedScreen(newsfeedViewModel: NewsfeedViewModel, back: () -> Unit) {
                                             Icons.Default.Newspaper,
                                             null,
                                             modifier = Modifier
-                                                .padding(start = 8.dp)
                                                 .size(16.dp)
                                         )
                                         Text(
                                             article.publisher,
                                             style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.padding(start = 8.dp)
+                                        )
+                                        Text(
+                                            "•",
+                                            style = MaterialTheme.typography.bodyMedium,
                                             modifier = Modifier.padding(horizontal = 8.dp)
                                         )
+                                        Text(
+                                            article.publicationDate.toTimeAgo(),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.padding(end = 8.dp)
+                                        )
                                     }
-                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
                             }
                         }
