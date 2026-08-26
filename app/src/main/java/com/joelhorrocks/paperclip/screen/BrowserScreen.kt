@@ -829,7 +829,7 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .paint(painterResource(article.imageResource), contentScale = ContentScale.Crop)
+                    .paint(painterResource(id = R.drawable.ic_launcher_background), contentScale = ContentScale.Crop)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

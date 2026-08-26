@@ -45,6 +45,12 @@ class AppModule {
 
     @Provides
     @Singleton
+    fun provideHttpClientProvider(): HttpClientProvider {
+        return HttpClientProvider()
+    }
+
+    @Provides
+    @Singleton
     fun provideDataStore(@ApplicationContext appContext: Context): DataStore<Preferences> {
         return PreferenceDataStoreFactory.create(
             corruptionHandler = ReplaceFileCorruptionHandler(
@@ -104,8 +110,8 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun provideNewsRepository(): NewsRepository {
-        return NewsRepositoryImpl()
+    fun provideNewsRepository(httpClientProvider: HttpClientProvider): NewsRepository {
+        return NewsRepositoryImpl(httpClientProvider)
     }
 
     @Provides

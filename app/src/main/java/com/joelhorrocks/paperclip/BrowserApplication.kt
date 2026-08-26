@@ -5,6 +5,7 @@ import android.app.Application
 import android.os.Process
 import androidx.core.content.getSystemService
 import dagger.hilt.android.HiltAndroidApp
+import io.ktor.client.HttpClient
 import org.mozilla.geckoview.GeckoRuntime
 
 @HiltAndroidApp

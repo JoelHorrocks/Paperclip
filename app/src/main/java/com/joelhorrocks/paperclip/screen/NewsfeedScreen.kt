@@ -49,6 +49,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.joelhorrocks.paperclip.R
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import com.joelhorrocks.paperclip.vm.ArticleLoadingState
 import com.joelhorrocks.paperclip.vm.NewsfeedViewModel
@@ -109,7 +110,7 @@ fun NewsfeedScreen(newsfeedViewModel: NewsfeedViewModel, back: () -> Unit) {
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .paint(painterResource(article.imageResource), contentScale = ContentScale.Crop)
+                                        .paint(painterResource(R.drawable.ic_launcher_background), contentScale = ContentScale.Crop)
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
