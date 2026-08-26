@@ -119,6 +119,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.joelhorrocks.paperclip.HOME_URL
 import com.joelhorrocks.paperclip.R
 import com.joelhorrocks.paperclip.Screen
@@ -808,6 +809,8 @@ fun Newsfeed(
             }
 
             ArticleLoadingState.ERROR -> {}
+
+            ArticleLoadingState.END -> {}
         }
     }
 }
@@ -829,8 +832,13 @@ fun NewsCard(article: Article, loadUrl: (url: String) -> Unit) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .paint(painterResource(id = R.drawable.ic_launcher_background), contentScale = ContentScale.Crop)
             ) {
+                AsyncImage(
+                    modifier = Modifier.fillMaxWidth(),
+                    model = article.imageUrl,
+                    contentScale = ContentScale.Crop,
+                    contentDescription = null,
+                )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End,

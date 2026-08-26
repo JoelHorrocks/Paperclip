@@ -39,6 +39,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +51,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.joelhorrocks.paperclip.R
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import com.joelhorrocks.paperclip.vm.ArticleLoadingState
@@ -110,8 +113,13 @@ fun NewsfeedScreen(newsfeedViewModel: NewsfeedViewModel, back: () -> Unit) {
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .paint(painterResource(R.drawable.ic_launcher_background), contentScale = ContentScale.Crop)
                                 ) {
+                                    AsyncImage(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        model = article.imageUrl,
+                                        contentScale = ContentScale.Crop,
+                                        contentDescription = null,
+                                    )
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.End,
@@ -182,6 +190,17 @@ fun NewsfeedScreen(newsfeedViewModel: NewsfeedViewModel, back: () -> Unit) {
                                 ) {
                                     ContainedLoadingIndicator(modifier = Modifier.size(56.dp))
                                 }
+                            }
+                        }
+                    } else if(state.articleLoadingState == ArticleLoadingState.END) {
+                        item {
+                            Box (
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(242.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No more articles")
                             }
                         }
                     }

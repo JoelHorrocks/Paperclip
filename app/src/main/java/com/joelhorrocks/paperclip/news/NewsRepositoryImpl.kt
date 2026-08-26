@@ -13,7 +13,7 @@ import javax.inject.Inject
 class NewsRepositoryImpl @Inject constructor(httpClientProvider: HttpClientProvider): NewsRepository {
     private val httpClient = httpClientProvider.httpClient
 
-    override suspend fun fetchLatestNews(): List<Article> {
-        return httpClient.get("https://paperclip.storeimg.com/news.json").body()
+    override suspend fun fetchLatestNews(n: Int): List<Article> {
+        return httpClient.get("https://storeimg.com/news/").body<List<Article>>().take(n)
     }
 }

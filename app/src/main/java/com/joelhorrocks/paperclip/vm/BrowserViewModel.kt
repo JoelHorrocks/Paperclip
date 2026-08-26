@@ -23,7 +23,7 @@ import org.mozilla.geckoview.GeckoSession
 import javax.inject.Inject
 
 enum class ArticleLoadingState {
-    LOADING, SUCCESS, ERROR
+    LOADING, SUCCESS, ERROR, END
 }
 
 @HiltViewModel
@@ -149,7 +149,7 @@ class BrowserViewModel @Inject constructor(
         }
         viewModelScope.launch {
             // TODO: error handling
-            val articles = newsRepository.fetchLatestNews()
+            val articles = newsRepository.fetchLatestNews(5)
             _uiState.update {
                 it.copy(
                     articleLoadingState = ArticleLoadingState.SUCCESS,
