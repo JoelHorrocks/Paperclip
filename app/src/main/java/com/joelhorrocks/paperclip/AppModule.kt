@@ -98,8 +98,8 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun provideTranslationModelRemoteDataSource(): TranslationModelRemoteDataSource {
-        return TranslationModelRemoteDataSource()
+    fun provideTranslationModelRemoteDataSource(httpClientProvider: HttpClientProvider): TranslationModelRemoteDataSource {
+        return TranslationModelRemoteDataSource(httpClientProvider)
     }
 
     @Provides

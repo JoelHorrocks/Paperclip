@@ -174,7 +174,6 @@ fun ModelCard(name: String, fromLanguage: String, toLanguage: String, size: Stri
                     style = MaterialTheme.typography.labelSmall
                 )
             }
-            Spacer(modifier = Modifier.weight(1f))
             IconButton(
                 onClick = { onClick() }
             ) {

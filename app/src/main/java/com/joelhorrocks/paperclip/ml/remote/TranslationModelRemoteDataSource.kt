@@ -1,28 +1,14 @@
 package com.joelhorrocks.paperclip.ml.remote
 
-import com.joelhorrocks.paperclip.ml.Language
+import com.joelhorrocks.paperclip.HttpClientProvider
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import javax.inject.Inject
 
-class TranslationModelRemoteDataSource {
-    private val models = listOf(
-        RemoteTranslationModel(
-            id = 1,
-            name = "Generic EN-FR",
-            fromLanguage = Language.EN,
-            toLanguage = Language.FR,
-            size = 0,
-            url = null,
-        ),
-        RemoteTranslationModel(
-            id = 2,
-            name = "Generic FR-EN",
-            fromLanguage = Language.FR,
-            toLanguage = Language.EN,
-            size = 0,
-            url = null,
-        )
-    )
+class TranslationModelRemoteDataSource @Inject constructor(httpClientProvider: HttpClientProvider) {
+    private val httpClient = httpClientProvider.httpClient
 
     suspend fun getModels(): List<RemoteTranslationModel> {
-        return models
+        return httpClient.get("https://paperclip.storeimg.com/models.json").body()
     }
 }
