@@ -149,7 +149,7 @@ class BrowserViewModel @Inject constructor(
         }
         viewModelScope.launch {
             // TODO: error handling
-            val articles = newsRepository.fetchLatestNews(5)
+            val articles = newsRepository.fetchNews(5)
             _uiState.update {
                 it.copy(
                     articleLoadingState = ArticleLoadingState.SUCCESS,

@@ -19,16 +19,14 @@ class NewsfeedViewModel @Inject constructor(
     data class NewsfeedUiState(
         val articleLoadingState: ArticleLoadingState = ArticleLoadingState.LOADING,
         val articleList: List<Article> = listOf(),
-        val batchNumber: Int = 0
+        val cursor: String? = null,
     )
 
     private val _uiState = MutableStateFlow(NewsfeedUiState())
     val uiState = _uiState.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            fetchArticleBatch()
-        }
+        fetchArticleBatch()
     }
 
     // TODO: share with BrowserViewModel?
@@ -42,19 +40,24 @@ class NewsfeedViewModel @Inject constructor(
         viewModelScope.launch {
             // TODO: errorhandling
             // TODO: proper batch system
-            if (uiState.value.batchNumber > 0) {
+            val articles = if(_uiState.value.cursor == null) {
+                newsRepository.fetchNews(10)
+            } else {
+                newsRepository.fetchNewsFrom(10, _uiState.value.cursor!!)
+            }
+
+            if(articles.isEmpty()) {
                 _uiState.update {
                     it.copy(
                         articleLoadingState = ArticleLoadingState.END
                     )
                 }
             } else {
-                val articles = newsRepository.fetchLatestNews(10)
                 _uiState.update {
                     it.copy(
                         articleLoadingState = ArticleLoadingState.SUCCESS,
-                        articleList = _uiState.value.articleList + articles,
-                        batchNumber = _uiState.value.batchNumber + 1
+                        articleList = it.articleList + articles,
+                        cursor = articles.last().id
                     )
                 }
             }

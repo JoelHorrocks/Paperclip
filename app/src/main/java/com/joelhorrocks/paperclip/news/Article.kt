@@ -13,8 +13,8 @@ data class Article(
     val publicationDate: Instant,
     val publisher: String,
     @SerialName("reading_time_min")
-    val readTimeMin: Int,
+    val readTimeMin: Int?,
     @SerialName("image_url")
-    val imageUrl: String,
+    val imageUrl: String?,
     val url: String
 )

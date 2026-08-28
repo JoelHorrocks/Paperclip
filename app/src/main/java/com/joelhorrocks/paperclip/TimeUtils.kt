@@ -14,7 +14,7 @@ fun Instant.toTimeAgo(): String {
         TimeUnit.DAYS.toMillis(7) to "week",
         TimeUnit.DAYS.toMillis(1) to "day",
         TimeUnit.HOURS.toMillis(1) to "hour",
-        TimeUnit.MINUTES.toMillis(1) to "minute",
+        TimeUnit.MINUTES.toMillis(1) to "min",
     )
     val currentTime = Clock.System.now().toEpochMilliseconds()
 
