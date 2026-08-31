@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -61,7 +62,6 @@ class MainActivity() : ComponentActivity() {
                 onBack = { back() },
                 entryDecorators = listOf(
                     rememberSaveableStateHolderNavEntryDecorator(),
-                    // TODO: scope to NavEntry or activity? Might depend on how I decide to implement
                     rememberViewModelStoreNavEntryDecorator()
                 ),
                 entryProvider = entryProvider {
@@ -75,17 +75,17 @@ class MainActivity() : ComponentActivity() {
                         }
                     }
                     entry<Screen.Home> {
-                        val browserViewModel: BrowserViewModel by viewModels()
+                        val browserViewModel: BrowserViewModel = hiltViewModel()
                         BrowserScreen(browserViewModel) {
                             backStack.add(it)
                         }
                     }
                     entry<Screen.Newsfeed> {
-                        val newsfeedViewModel: NewsfeedViewModel by viewModels()
+                        val newsfeedViewModel: NewsfeedViewModel = hiltViewModel()
                         NewsfeedScreen(newsfeedViewModel, back = { back() })
                     }
                     entry<Screen.History> {
-                        val historyViewModel: HistoryViewModel by viewModels()
+                        val historyViewModel: HistoryViewModel = hiltViewModel()
                         HistoryScreen(historyViewModel, back = { back() })
                     }
                     entry<Screen.Settings> {
@@ -94,7 +94,7 @@ class MainActivity() : ComponentActivity() {
                         }
                     }
                     entry<Screen.TranslationModel> {
-                        val translationModelViewModel: TranslationModelViewModel by viewModels()
+                        val translationModelViewModel: TranslationModelViewModel = hiltViewModel()
                         TranslationModelScreen(translationModelViewModel, back = { back() })
                     }
                 }
