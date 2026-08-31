@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.joelhorrocks.paperclip.history.HistoryEntryEntity
 import com.joelhorrocks.paperclip.ml.TranslationModel
 import kotlinx.coroutines.flow.Flow
@@ -24,4 +25,7 @@ interface TranslationModelDao {
 
     @Query("DELETE FROM translationmodels")
     suspend fun clearAll()
+
+    @Update
+    suspend fun update(translationModelEntity: TranslationModelEntity)
 }

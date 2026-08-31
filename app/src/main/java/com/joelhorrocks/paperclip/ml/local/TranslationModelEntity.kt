@@ -14,7 +14,7 @@ data class TranslationModelEntity(
     @ColumnInfo(name = "from_language") val fromLanguage: Language,
     @ColumnInfo(name = "to_language") val toLanguage: Language,
     @ColumnInfo(name = "size") val size: Long,
-    @ColumnInfo(name = "downloading") val downloading: Boolean,
+    @ColumnInfo(name = "path") val path: String,
 )
 
 fun TranslationModelEntity.toDomain() = TranslationModel(
@@ -23,5 +23,5 @@ fun TranslationModelEntity.toDomain() = TranslationModel(
     this.fromLanguage,
     this.toLanguage,
     this.size,
-    TranslationModelDownloadStatus.Downloaded("")
+    TranslationModelDownloadStatus.Downloaded(this.path)
 )

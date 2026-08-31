@@ -92,8 +92,8 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun provideTranslationModelRepository(translationModelLocalDataSource: TranslationModelLocalDataSource, translationModelRemoteDataSource: TranslationModelRemoteDataSource): TranslationModelRepository {
-        return TranslationModelRepositoryImpl(translationModelLocalDataSource, translationModelRemoteDataSource)
+    fun provideTranslationModelRepository(translationModelLocalDataSource: TranslationModelLocalDataSource, translationModelRemoteDataSource: TranslationModelRemoteDataSource, httpClientProvider: HttpClientProvider): TranslationModelRepository {
+        return TranslationModelRepositoryImpl(translationModelLocalDataSource, translationModelRemoteDataSource, httpClientProvider)
     }
 
     @Provides

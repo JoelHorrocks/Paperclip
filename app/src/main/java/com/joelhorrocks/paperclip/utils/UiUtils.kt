@@ -1,4 +1,4 @@
-package com.joelhorrocks.paperclip
+package com.joelhorrocks.paperclip.utils
 
 import android.content.res.Resources.getSystem
 import androidx.compose.ui.unit.Dp

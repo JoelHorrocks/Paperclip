@@ -15,6 +15,10 @@ class TranslationModelLocalDataSource @Inject constructor(private val translatio
         translationModelDao.insertAll(*translationModelEntities)
     }
 
+    suspend fun update(translationModelEntity: TranslationModelEntity) {
+        translationModelDao.update(translationModelEntity)
+    }
+
     suspend fun delete(translationModelEntity: TranslationModelEntity) {
         translationModelDao.delete(translationModelEntity)
     }

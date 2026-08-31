@@ -95,7 +95,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.paint
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -106,7 +105,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -127,7 +125,7 @@ import com.joelhorrocks.paperclip.model.Prompt
 import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.news.Article
 import com.joelhorrocks.paperclip.shortcuts.Shortcut
-import com.joelhorrocks.paperclip.toTimeAgo
+import com.joelhorrocks.paperclip.utils.toTimeAgo
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import com.joelhorrocks.paperclip.vm.ArticleLoadingState
 import com.joelhorrocks.paperclip.vm.BrowserViewModel

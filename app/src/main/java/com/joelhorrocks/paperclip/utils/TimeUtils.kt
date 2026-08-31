@@ -1,8 +1,7 @@
-package com.joelhorrocks.paperclip
+package com.joelhorrocks.paperclip.utils
 
-import android.content.res.Resources.getSystem
-import androidx.compose.ui.unit.Dp
 import java.util.concurrent.TimeUnit
+import kotlin.collections.iterator
 import kotlin.math.roundToInt
 import kotlin.time.Clock
 import kotlin.time.Instant
