@@ -49,9 +49,7 @@ class TranslationModelViewModel @Inject constructor(
     }
 
     fun downloadModel(id: Int) {
-        viewModelScope.launch {
-            translationModelRepository.downloadModel(id)
-        }
+        translationModelRepository.downloadModel(id)
     }
 
 

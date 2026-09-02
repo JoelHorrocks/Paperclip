@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -78,10 +79,16 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
             Column(
                 modifier = Modifier.padding(innerPadding)
             ) {
-                LazyColumn(contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyColumn(
+                    contentPadding = PaddingValues(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     // TODO: better way to split?
                     item {
-                        if(state.modelList.any { it.downloadStatus is TranslationModelDownloadStatus.Downloading }) {
+                        if (state.modelList.any {
+                            it.downloadStatus is TranslationModelDownloadStatus.Downloading ||
+                                    it.downloadStatus is TranslationModelDownloadStatus.Error
+                        }) {
                             Text(
                                 text = "Downloading",
                                 style = MaterialTheme.typography.titleMedium,
@@ -89,26 +96,48 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
                             )
                         }
                     }
-                    items(state.modelList.filter { it.downloadStatus is TranslationModelDownloadStatus.Downloading }) { model ->
-                        ModelCard(
-                            model.name,
-                            model.fromLanguage.name,
-                            model.toLanguage.name,
-                            model.size.toFileSize(),
-                            true,
-                            (model.downloadStatus as TranslationModelDownloadStatus.Downloading).progress,
-                            {
-                                Icon(
-                                    imageVector = Icons.Default.Cancel,
-                                    null
-                                )
+                    items(state.modelList.filter {
+                        it.downloadStatus is TranslationModelDownloadStatus.Downloading ||
+                                it.downloadStatus is TranslationModelDownloadStatus.Error
+                    }) { model ->
+                        if (model.downloadStatus is TranslationModelDownloadStatus.Error) {
+                            ModelCard(
+                                model.name,
+                                model.fromLanguage.name,
+                                model.toLanguage.name,
+                                model.size.toFileSize(),
+                                false,
+                                0F,
+                                {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        null
+                                    )
+                                }
+                            ) {
+                                translationModelViewModel.deleteModel(model.id)
                             }
-                        ) {
-                            translationModelViewModel.deleteModel(model.id)
+                        } else {
+                            ModelCard(
+                                model.name,
+                                model.fromLanguage.name,
+                                model.toLanguage.name,
+                                model.size.toFileSize(),
+                                true,
+                                (model.downloadStatus as TranslationModelDownloadStatus.Downloading).progress,
+                                {
+                                    Icon(
+                                        imageVector = Icons.Default.Cancel,
+                                        null
+                                    )
+                                }
+                            ) {
+                                translationModelViewModel.deleteModel(model.id)
+                            }
                         }
                     }
                     item {
-                        if(state.modelList.any { it.downloadStatus is TranslationModelDownloadStatus.Downloaded }) {
+                        if (state.modelList.any { it.downloadStatus is TranslationModelDownloadStatus.Downloaded }) {
                             Text(
                                 text = "Downloaded",
                                 style = MaterialTheme.typography.titleMedium,
@@ -135,7 +164,7 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
                         }
                     }
                     item {
-                        if(state.modelList.any { it.downloadStatus is TranslationModelDownloadStatus.Available }) {
+                        if (state.modelList.any { it.downloadStatus is TranslationModelDownloadStatus.Available }) {
                             Text(
                                 text = "Available",
                                 style = MaterialTheme.typography.titleMedium,
@@ -161,7 +190,7 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
                             translationModelViewModel.downloadModel(model.id)
                         }
                     }
-                    if(state.translationModelLoadingState == TranslationModelLoadingState.LOADING) {
+                    if (state.translationModelLoadingState == TranslationModelLoadingState.LOADING) {
                         item {
                             Column {
                                 Box(
@@ -217,7 +246,7 @@ fun ModelCard(
             ) {
                 Text(name)
                 Text(
-                    "${fromLanguage}-${toLanguage} • ${size}",
+                    "${fromLanguage}-${toLanguage} • $size",
                     style = MaterialTheme.typography.labelSmall
                 )
             }
@@ -227,7 +256,7 @@ fun ModelCard(
                 icon()
             }
         }
-        if(downloading) {
+        if (downloading) {
             val progress by animateFloatAsState(
                 downloadProgress,
                 ProgressIndicatorDefaults.ProgressAnimationSpec

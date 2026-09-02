@@ -16,11 +16,12 @@ import io.ktor.utils.io.exhausted
 import io.ktor.utils.io.readRemaining
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.io.asSink
 import java.io.File
 import javax.inject.Inject
@@ -55,47 +56,46 @@ class TranslationModelRepositoryImpl @Inject constructor(
     // TODO: move to local datasource?? where do we put downloading models?
     // keep in memory in the repository for now
     // TODO: split this up into smaller functions, inject dispatcher?
-    override suspend fun downloadModel(id: Int) {
+    override fun downloadModel(id: Int) {
         val model = remoteModels.value.firstOrNull { it.id == id }
 
         // TODO: error handling
         if (model != null && model.url != null) {
-            downloadingModels.value += model.toDomain().copy(downloadStatus = TranslationModelDownloadStatus.Downloading(0f))
+            downloadingModels.update {
+                it + model.toDomain().copy(downloadStatus = TranslationModelDownloadStatus.Downloading(0f))
+            }
 
-            externalScope.launch {
-                val file = withContext(Dispatchers.IO) {
-                    File.createTempFile("files", "index")
-                }
-                val stream = withContext(Dispatchers.IO) {
-                    file.outputStream().asSink()
-                }
-                val bufferSize: Long = 1024 * 1024
+            externalScope.launch(Dispatchers.IO) {
+                val file = File.createTempFile("files", "index")
+                val stream = file.outputStream().asSink()
 
-                httpClient.prepareGet(model.url).execute { httpResponse ->
-                    val channel: ByteReadChannel = httpResponse.body()
-                    var count = 0L
-                    stream.use {
-                        while (!channel.exhausted()) {
-                            withContext(Dispatchers.IO) {
+                try {
+                    val bufferSize: Long = 1024 * 1024
+
+                    httpClient.prepareGet(model.url).execute { httpResponse ->
+                        val channel: ByteReadChannel = httpResponse.body()
+                        var count = 0L
+                        stream.use {
+                            while (!channel.exhausted()) {
                                 val chunk = channel.readRemaining(bufferSize)
                                 count += chunk.remaining
                                 chunk.transferTo(stream)
-                            }
-                            downloadingModels.update { translationModels ->
-                                val model = translationModels.firstOrNull { it.id == id }
-                                if (model != null) {
-                                    translationModels.filter { it.id != id } + model.copy(
-                                        downloadStatus = TranslationModelDownloadStatus.Downloading(count.toFloat() / httpResponse.contentLength()!!)
-                                    )
-                                } else {
-                                    translationModels
+                                downloadingModels.update { translationModels ->
+                                    val model = translationModels.firstOrNull { it.id == id }
+                                    if (model != null) {
+                                        translationModels.filter { it.id != id } + model.copy(
+                                            downloadStatus = TranslationModelDownloadStatus.Downloading(
+                                                count.toFloat() / httpResponse.contentLength()!!
+                                            )
+                                        )
+                                    } else {
+                                        translationModels
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                withContext(Dispatchers.IO) {
                     translationModelLocalDataSource.insertAll(
                         TranslationModelEntity(
                             id = model.id,
@@ -106,10 +106,26 @@ class TranslationModelRepositoryImpl @Inject constructor(
                             path = file.path
                         )
                     )
-                }
 
-                downloadingModels.update { translationModels ->
-                    translationModels.filter { it.id != id }
+                    downloadingModels.update { translationModels ->
+                        translationModels.filter { it.id != id }
+                    }
+                } catch (_: Exception) {
+                    currentCoroutineContext().ensureActive()
+
+                    stream.close()
+                    file.delete()
+
+                    downloadingModels.update { translationModels ->
+                        val model = translationModels.firstOrNull { it.id == id }
+                        if (model != null) {
+                            translationModels.filter { it.id != id } + model.copy(
+                                downloadStatus = TranslationModelDownloadStatus.Error(DownloadError.UNKNOWN)
+                            )
+                        } else {
+                            translationModels
+                        }
+                    }
                 }
             }
             // TODO: how to handle downloads, should we do database write each time??

@@ -13,6 +13,10 @@ sealed interface TranslationModelDownloadStatus{
     data class Available(val url: String): TranslationModelDownloadStatus
     data class Downloading(val progress: Float): TranslationModelDownloadStatus
     data class Downloaded(val path: String): TranslationModelDownloadStatus
-    object Error: TranslationModelDownloadStatus
+    data class Error(val error: DownloadError): TranslationModelDownloadStatus
+}
+
+enum class DownloadError {
+    UNKNOWN
 }
 
