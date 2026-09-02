@@ -6,5 +6,6 @@ interface TranslationModelRepository {
     val models: Flow<List<TranslationModel>>
     suspend fun fetchModels()
     fun downloadModel(id: Int)
+    fun cancelDownload(id: Int)
     suspend fun deleteModel(id: Int)
 }

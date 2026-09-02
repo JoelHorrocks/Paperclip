@@ -99,7 +99,7 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
                     items(state.modelList.filter {
                         it.downloadStatus is TranslationModelDownloadStatus.Downloading ||
                                 it.downloadStatus is TranslationModelDownloadStatus.Error
-                    }) { model ->
+                    }, key = { model -> model.id }) { model ->
                         if (model.downloadStatus is TranslationModelDownloadStatus.Error) {
                             ModelCard(
                                 model.name,
@@ -113,9 +113,10 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
                                         imageVector = Icons.Default.Warning,
                                         null
                                     )
-                                }
+                                },
+                                Modifier.animateItem()
                             ) {
-                                translationModelViewModel.deleteModel(model.id)
+                                translationModelViewModel.cancelDownload(model.id)
                             }
                         } else {
                             ModelCard(
@@ -130,9 +131,10 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
                                         imageVector = Icons.Default.Cancel,
                                         null
                                     )
-                                }
+                                },
+                                Modifier.animateItem()
                             ) {
-                                translationModelViewModel.deleteModel(model.id)
+                                translationModelViewModel.cancelDownload(model.id)
                             }
                         }
                     }
@@ -145,7 +147,9 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
                             )
                         }
                     }
-                    items(state.modelList.filter { it.downloadStatus is TranslationModelDownloadStatus.Downloaded }) { model ->
+                    items(
+                        state.modelList.filter { it.downloadStatus is TranslationModelDownloadStatus.Downloaded },
+                        key = { model -> model.id }) { model ->
                         ModelCard(
                             model.name,
                             model.fromLanguage.name,
@@ -158,7 +162,8 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
                                     imageVector = Icons.Default.Delete,
                                     null
                                 )
-                            }
+                            },
+                            Modifier.animateItem()
                         ) {
                             translationModelViewModel.deleteModel(model.id)
                         }
@@ -172,7 +177,9 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
                             )
                         }
                     }
-                    items(state.modelList.filter { it.downloadStatus is TranslationModelDownloadStatus.Available }) { model ->
+                    items(
+                        state.modelList.filter { it.downloadStatus is TranslationModelDownloadStatus.Available },
+                        key = { model -> model.id }) { model ->
                         ModelCard(
                             model.name,
                             model.fromLanguage.name,
@@ -185,7 +192,8 @@ fun TranslationModelScreen(translationModelViewModel: TranslationModelViewModel,
                                     imageVector = Icons.Default.Download,
                                     null
                                 )
-                            }
+                            },
+                            Modifier.animateItem()
                         ) {
                             translationModelViewModel.downloadModel(model.id)
                         }
@@ -220,10 +228,11 @@ fun ModelCard(
     downloading: Boolean,
     downloadProgress: Float,
     icon: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     OutlinedCard(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)

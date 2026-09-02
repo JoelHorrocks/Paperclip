@@ -1,5 +1,7 @@
 package com.joelhorrocks.paperclip.ml
 
+import kotlinx.coroutines.Job
+
 data class TranslationModel (
     val id: Int,
     val name: String,

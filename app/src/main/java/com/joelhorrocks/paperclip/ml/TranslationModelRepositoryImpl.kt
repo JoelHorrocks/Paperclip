@@ -16,6 +16,7 @@ import io.ktor.utils.io.exhausted
 import io.ktor.utils.io.readRemaining
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +36,8 @@ class TranslationModelRepositoryImpl @Inject constructor(
     private val remoteModels = MutableStateFlow(listOf<RemoteTranslationModel>())
     // TODO: remove
     private val downloadingModels = MutableStateFlow(listOf<TranslationModel>())
+    // TODO: keeping this here since we don't want anything else cancelling jobs, think about this
+    private val downloadingJobs = mutableMapOf<Int, Job>()
     // TODO: merge lists
     // TODO: stateIn / shareIn
     override val models = combine(
@@ -52,6 +55,20 @@ class TranslationModelRepositoryImpl @Inject constructor(
         remoteModels.value = translationModelRemoteDataSource.getModels()
     }
 
+    override fun cancelDownload(id: Int){
+        // TODO: handle ID not valid
+        // TODO: should we do cleanup in CancellationException handler?
+        if(downloadingJobs.containsKey(id)) {
+            downloadingJobs[id]?.cancel()
+            downloadingJobs.remove(id)
+
+            downloadingModels.update { translationModels ->
+                translationModels.filter { it.id != id }
+            }
+            // TODO: clean up file?
+        }
+    }
+
     // TODO: use UIDT?
     // TODO: move to local datasource?? where do we put downloading models?
     // keep in memory in the repository for now
@@ -65,7 +82,7 @@ class TranslationModelRepositoryImpl @Inject constructor(
                 it + model.toDomain().copy(downloadStatus = TranslationModelDownloadStatus.Downloading(0f))
             }
 
-            externalScope.launch(Dispatchers.IO) {
+            val job = externalScope.launch(Dispatchers.IO) {
                 val file = File.createTempFile("files", "index")
                 val stream = file.outputStream().asSink()
 
@@ -110,7 +127,8 @@ class TranslationModelRepositoryImpl @Inject constructor(
                     downloadingModels.update { translationModels ->
                         translationModels.filter { it.id != id }
                     }
-                } catch (_: Exception) {
+                }
+                catch (_: Exception) {
                     currentCoroutineContext().ensureActive()
 
                     stream.close()
@@ -128,6 +146,7 @@ class TranslationModelRepositoryImpl @Inject constructor(
                     }
                 }
             }
+            downloadingJobs[id] = job
             // TODO: how to handle downloads, should we do database write each time??
         }
     }

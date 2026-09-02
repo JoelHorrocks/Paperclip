@@ -52,6 +52,10 @@ class TranslationModelViewModel @Inject constructor(
         translationModelRepository.downloadModel(id)
     }
 
+    fun cancelDownload(id: Int) {
+        translationModelRepository.cancelDownload(id)
+    }
+
 
     fun deleteModel(id: Int) {
         viewModelScope.launch {
