@@ -11,11 +11,9 @@ import androidx.room.Room
 import com.joelhorrocks.paperclip.history.HistoryDao
 import com.joelhorrocks.paperclip.history.HistoryRepository
 import com.joelhorrocks.paperclip.history.HistoryRepositoryImpl
-import com.joelhorrocks.paperclip.ml.remote.TranslationModelRemoteDataSource
 import com.joelhorrocks.paperclip.ml.TranslationModelRepository
 import com.joelhorrocks.paperclip.ml.TranslationModelRepositoryImpl
 import com.joelhorrocks.paperclip.ml.local.TranslationModelDao
-import com.joelhorrocks.paperclip.ml.local.TranslationModelLocalDataSource
 import com.joelhorrocks.paperclip.news.NewsRepository
 import com.joelhorrocks.paperclip.news.NewsRepositoryImpl
 import com.joelhorrocks.paperclip.settings.SettingsRepository
@@ -27,120 +25,133 @@ import com.joelhorrocks.paperclip.tab.FileTabLocalDataSource
 import com.joelhorrocks.paperclip.tab.TabLocalDataSource
 import com.joelhorrocks.paperclip.tab.TabRepository
 import com.joelhorrocks.paperclip.tab.TabRepositoryImpl
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
+import kotlinx.serialization.json.Json
+import org.mozilla.geckoview.GeckoRuntime
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-class AppModule {
-    @Provides
+abstract class AppModule {
+    @Binds
     @Singleton
-    fun provideGeckoRuntimeProvider(@ApplicationContext appContext: Context): GeckoRuntimeProvider {
-        return GeckoRuntimeProvider(appContext)
-    }
+    abstract fun bindNewsRepository(
+        newsRepositoryImpl: NewsRepositoryImpl
+    ): NewsRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideHttpClientProvider(): HttpClientProvider {
-        return HttpClientProvider()
-    }
+    abstract fun bindSettingsRepository(
+        settingsRepositoryImpl: SettingsRepositoryImpl
+    ): SettingsRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideDataStore(@ApplicationContext appContext: Context): DataStore<Preferences> {
-        return PreferenceDataStoreFactory.create(
-            corruptionHandler = ReplaceFileCorruptionHandler(
-                produceNewData = { emptyPreferences() }
-            ),
-            produceFile = { appContext.dataStoreFile("user_prefs.preferences_pb") }
-        )
-    }
+    abstract fun bindTabRepository(
+        tabRepositoryImpl: TabRepositoryImpl
+    ): TabRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideAppDatabase(@ApplicationContext appContext: Context): AppDatabase {
-        return Room.databaseBuilder(
-            appContext,
-            AppDatabase::class.java, "paperclip-database"
-        ).build()
-    }
+    abstract fun bindShortcutsRepository(
+        shortcutRepositoryImpl: ShortcutRepositoryImpl
+    ): ShortcutRepository
 
-    @Provides
-    fun provideShortcutDao(appDatabase: AppDatabase): ShortcutDao {
-        return appDatabase.shortcutDao()
-    }
-
-    @Provides
-    fun provideHistoryDao(appDatabase: AppDatabase): HistoryDao {
-        return appDatabase.historyDao()
-    }
-
-    @Provides
-    fun provideTranslationModelDao(appDatabase: AppDatabase): TranslationModelDao {
-        return appDatabase.translationModelDao()
-    }
-
-    @Provides
+    @Binds
     @Singleton
-    fun provideSettingsRepository(dataStore: DataStore<Preferences>): SettingsRepository {
-        return SettingsRepositoryImpl(dataStore)
-    }
+    abstract fun bindHistoryRepository(
+        historyRepositoryImpl: HistoryRepositoryImpl
+    ): HistoryRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideTranslationModelRepository(translationModelLocalDataSource: TranslationModelLocalDataSource, translationModelRemoteDataSource: TranslationModelRemoteDataSource, httpClientProvider: HttpClientProvider): TranslationModelRepository {
-        return TranslationModelRepositoryImpl(translationModelLocalDataSource, translationModelRemoteDataSource, httpClientProvider)
-    }
+    abstract fun bindTabLocalDataSource(
+        fileTabLocalDataSource: FileTabLocalDataSource
+    ): TabLocalDataSource
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideTranslationModelRemoteDataSource(httpClientProvider: HttpClientProvider): TranslationModelRemoteDataSource {
-        return TranslationModelRemoteDataSource(httpClientProvider)
-    }
+    abstract fun bindTranslationModelRepository(
+        translationModelRepositoryImpl: TranslationModelRepositoryImpl
+    ): TranslationModelRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideTranslationModelLocalDataSource(translationModelDao: TranslationModelDao): TranslationModelLocalDataSource {
-        return TranslationModelLocalDataSource(translationModelDao)
-    }
+    abstract fun bindTabController(
+        tabControllerImpl: TabControllerImpl
+    ): TabController
 
-    @Provides
-    @Singleton
-    fun provideNewsRepository(httpClientProvider: HttpClientProvider): NewsRepository {
-        return NewsRepositoryImpl(httpClientProvider)
-    }
+    companion object {
+        @Provides
+        @Singleton
+        fun provideGeckoRuntime(@ApplicationContext appContext: Context): GeckoRuntime {
+            return (appContext as BrowserApplication).geckoRuntime
+        }
 
-    @Provides
-    @Singleton
-    fun provideTabLocalDataSource(@ApplicationContext appContext: Context): TabLocalDataSource {
-        return FileTabLocalDataSource(appContext)
-    }
+        @Provides
+        @Singleton
+        fun provideHttpClient(): HttpClient {
+            return HttpClient(CIO) {
+                install(ContentNegotiation) {
+                    json(
+                        Json {
+                            ignoreUnknownKeys = true
+                        }
+                    )
+                }
+            }
+        }
 
-    @Provides
-    @Singleton
-    fun provideTabRepository(tabLocalDataSource: TabLocalDataSource): TabRepository {
-        return TabRepositoryImpl(tabLocalDataSource)
-    }
+        @Provides
+        @Singleton
+        fun provideDataStore(@ApplicationContext appContext: Context): DataStore<Preferences> {
+            return PreferenceDataStoreFactory.create(
+                corruptionHandler = ReplaceFileCorruptionHandler(
+                    produceNewData = { emptyPreferences() }
+                ),
+                produceFile = { appContext.dataStoreFile("user_prefs.preferences_pb") }
+            )
+        }
 
-    @Provides
-    @Singleton
-    fun provideShortcutsRepository(shortcutDao: ShortcutDao): ShortcutRepository {
-        return ShortcutRepositoryImpl(shortcutDao)
-    }
+        @Provides
+        @Singleton
+        fun provideAppDatabase(@ApplicationContext appContext: Context): AppDatabase {
+            return Room.databaseBuilder(
+                appContext,
+                AppDatabase::class.java, "paperclip-database"
+            ).build()
+        }
 
-    @Provides
-    @Singleton
-    fun provideHistoryRepository(historyDao: HistoryDao): HistoryRepository {
-        return HistoryRepositoryImpl(historyDao)
-    }
+        @Provides
+        fun provideShortcutDao(appDatabase: AppDatabase): ShortcutDao {
+            return appDatabase.shortcutDao()
+        }
 
-    @Provides
-    @Singleton
-    fun provideTabController(browserEngine: BrowserEngine, tabRepository: TabRepository, historyRepository: HistoryRepository): TabController {
-        return TabControllerImpl(browserEngine, tabRepository, historyRepository)
+        @Provides
+        fun provideHistoryDao(appDatabase: AppDatabase): HistoryDao {
+            return appDatabase.historyDao()
+        }
+
+        @Provides
+        fun provideTranslationModelDao(appDatabase: AppDatabase): TranslationModelDao {
+            return appDatabase.translationModelDao()
+        }
+
+        @Provides
+        @Singleton
+        fun provideApplicationScope(): CoroutineScope {
+            return MainScope()
+        }
     }
 }

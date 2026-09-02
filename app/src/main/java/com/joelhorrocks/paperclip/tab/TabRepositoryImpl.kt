@@ -5,6 +5,7 @@ import com.joelhorrocks.paperclip.model.Tab
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
 
 
 data class TabsState(
@@ -15,7 +16,7 @@ data class TabsState(
         get() = tabs.firstOrNull { it.id == currentTabId }
 }
 
-class TabRepositoryImpl(
+class TabRepositoryImpl @Inject constructor(
     private val tabLocalDataSource: TabLocalDataSource
 ): TabRepository {
 

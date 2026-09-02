@@ -2,9 +2,11 @@ package com.joelhorrocks.paperclip.tab
 
 import android.content.Context
 import com.joelhorrocks.paperclip.model.Tab
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
 
-class FileTabLocalDataSource(private val context: Context): TabLocalDataSource {
+class FileTabLocalDataSource @Inject constructor(@ApplicationContext private val context: Context): TabLocalDataSource {
     override fun loadTabs(): List<Tab> {
         val tabsJson = context.openFileInput("tabs.json").bufferedReader().readText()
         val tabs = Json.decodeFromString<List<Tab>>(tabsJson)

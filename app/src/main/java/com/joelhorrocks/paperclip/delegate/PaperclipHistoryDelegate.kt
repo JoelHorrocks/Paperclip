@@ -5,12 +5,14 @@ import com.joelhorrocks.paperclip.history.HistoryRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.HistoryDelegate
 
 class PaperclipHistoryDelegate(
-    private val historyRepository: HistoryRepository
+    private val historyRepository: HistoryRepository,
+    private val externalScope: CoroutineScope
 ): HistoryDelegate {
 
     override fun onVisited(
@@ -34,15 +36,17 @@ class PaperclipHistoryDelegate(
             lastVisitedURL?.let { it == url } ?: false
         ) return GeckoResult.fromValue(false)
 
-        CoroutineScope(Dispatchers.IO).launch {
-            historyRepository.insertHistoryEntries(
-                HistoryEntry(
-                    id = null,
-                    url = url,
-                    title = "", // TODO: get title
-                    timestamp = System.currentTimeMillis()
+        externalScope.launch {
+            withContext(Dispatchers.IO) {
+                historyRepository.insertHistoryEntries(
+                    HistoryEntry(
+                        id = null,
+                        url = url,
+                        title = "", // TODO: get title
+                        timestamp = System.currentTimeMillis()
+                    )
                 )
-            )
+            }
         }
 
         return super.onVisited(session, url, lastVisitedURL, flags)

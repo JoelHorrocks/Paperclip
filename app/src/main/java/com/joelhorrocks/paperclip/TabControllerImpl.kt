@@ -1,20 +1,32 @@
 package com.joelhorrocks.paperclip
 
-import com.joelhorrocks.paperclip.delegate.*
+import com.joelhorrocks.paperclip.delegate.PaperclipContentDelegate
+import com.joelhorrocks.paperclip.delegate.PaperclipHistoryDelegate
+import com.joelhorrocks.paperclip.delegate.PaperclipNavigationDelegate
+import com.joelhorrocks.paperclip.delegate.PaperclipProgressDelegate
+import com.joelhorrocks.paperclip.delegate.PaperclipPromptDelegate
 import com.joelhorrocks.paperclip.history.HistoryRepository
 import com.joelhorrocks.paperclip.model.Prompt
 import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.tab.TabRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.mozilla.geckoview.GeckoSession
+import javax.inject.Inject
 
-class TabControllerImpl(
+class TabControllerImpl @Inject constructor(
     private val browserEngine: BrowserEngine,
     private val tabRepository: TabRepository,
-    private val historyRepository: HistoryRepository
+    private val historyRepository: HistoryRepository,
+    private val externalScope: CoroutineScope
 ) : TabController {
     private val _sessions = MutableStateFlow(mapOf<String, GeckoSession>())
     override val sessions = _sessions.asStateFlow()
@@ -25,7 +37,7 @@ class TabControllerImpl(
     init {
         // TODO: move to correct place
         // TODO: replace with some sort of 'ensureSession' system?
-        CoroutineScope(Dispatchers.Main).launch {
+        externalScope.launch(Dispatchers.Main) {
             tabRepository.tabsState
                 .map { state -> state.tabs.map { it.id }.toSet() }
                 .distinctUntilChanged()
@@ -75,9 +87,9 @@ class TabControllerImpl(
             newSession
         }
 
-        session.historyDelegate = PaperclipHistoryDelegate(historyRepository)
+        session.historyDelegate = PaperclipHistoryDelegate(historyRepository, externalScope)
         session.promptDelegate = PaperclipPromptDelegate {
-            CoroutineScope(Dispatchers.Main).launch {
+            externalScope.launch {
                 _prompts.emit(it)
             }
         }
