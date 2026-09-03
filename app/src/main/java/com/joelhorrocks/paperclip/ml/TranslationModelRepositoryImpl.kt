@@ -6,8 +6,11 @@ import com.joelhorrocks.paperclip.ml.local.toDomain
 import com.joelhorrocks.paperclip.ml.remote.RemoteTranslationModel
 import com.joelhorrocks.paperclip.ml.remote.TranslationModelRemoteDataSource
 import com.joelhorrocks.paperclip.ml.remote.toDomain
+import com.joelhorrocks.paperclip.utils.getSize
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeoutConfig
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.prepareGet
 import io.ktor.http.contentLength
 import io.ktor.utils.io.ByteReadChannel
@@ -23,15 +26,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.io.asSink
 import java.io.File
+import java.nio.file.Path
+import java.util.zip.ZipFile
 import javax.inject.Inject
 
 class TranslationModelRepositoryImpl @Inject constructor(
     private val translationModelLocalDataSource: TranslationModelLocalDataSource,
     private val translationModelRemoteDataSource: TranslationModelRemoteDataSource,
     private val httpClient: HttpClient,
-    private val externalScope: CoroutineScope
+    private val externalScope: CoroutineScope,
+    private val modelDirectory: Path
 ): TranslationModelRepository {
     private val remoteModels = MutableStateFlow(listOf<RemoteTranslationModel>())
     // TODO: remove
@@ -86,10 +93,18 @@ class TranslationModelRepositoryImpl @Inject constructor(
                 val file = File.createTempFile("files", "index")
                 val stream = file.outputStream().asSink()
 
+                // TODO: copy over once done? think about file unzip process
+                val targetDirectory = File(modelDirectory.toFile(), model.id.toString())
+
                 try {
                     val bufferSize: Long = 1024 * 1024
 
-                    httpClient.prepareGet(model.url).execute { httpResponse ->
+                    httpClient.prepareGet(model.url) {
+                        timeout {
+                            requestTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS
+                            socketTimeoutMillis = 30000
+                        }
+                    }.execute { httpResponse ->
                         val channel: ByteReadChannel = httpResponse.body()
                         var count = 0L
                         stream.use {
@@ -113,14 +128,46 @@ class TranslationModelRepositoryImpl @Inject constructor(
                         }
                     }
 
+                    // copy file to app storage and unzip
+                    // TODO: error if file is not a zip
+
+                    if(!targetDirectory.exists()) {
+                        targetDirectory.mkdirs()
+                    }
+
+                    ZipFile(file).use { zip ->
+                        zip.entries().asSequence().forEach { entry ->
+                            val filePath = File(targetDirectory, entry.name)
+
+                            val canonicalDestination = targetDirectory.canonicalPath
+                            val canonicalFile = filePath.canonicalPath
+
+                            if(!canonicalFile.startsWith(canonicalDestination + File.separator)) {
+                                throw IllegalArgumentException("Entry is outside of the target dir: $filePath")
+                            }
+
+                            zip.getInputStream(entry).use { input ->
+                                if(entry.isDirectory) {
+                                    filePath.mkdirs()
+                                } else {
+                                    filePath.parentFile?.mkdirs()
+                                    filePath.outputStream().use { output ->
+                                        input.copyTo(output)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    file.delete()
+
                     translationModelLocalDataSource.insertAll(
                         TranslationModelEntity(
                             id = model.id,
                             name = model.name,
                             fromLanguage = model.fromLanguage,
                             toLanguage = model.toLanguage,
-                            size = file.length(),
-                            path = file.path
+                            size = targetDirectory.getSize(),
                         )
                     )
 
@@ -129,10 +176,12 @@ class TranslationModelRepositoryImpl @Inject constructor(
                     }
                 }
                 catch (_: Exception) {
+                    // TODO: handle coroutine cancellation
                     currentCoroutineContext().ensureActive()
 
                     stream.close()
                     file.delete()
+                    targetDirectory.deleteRecursively()
 
                     downloadingModels.update { translationModels ->
                         val model = translationModels.firstOrNull { it.id == id }
@@ -152,6 +201,12 @@ class TranslationModelRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteModel(id: Int) {
-        translationModelLocalDataSource.delete(id)
+        val model = translationModelLocalDataSource.getModel(id)
+        if (model != null) {
+            translationModelLocalDataSource.delete(id)
+            withContext(Dispatchers.IO) {
+                File("$modelDirectory/${model.id}").deleteRecursively()
+            }
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.joelhorrocks.paperclip.utils
 
+import java.io.File
 import kotlin.math.log10
 import kotlin.math.pow
 
@@ -18,4 +19,16 @@ fun Long.toFileSize(): String {
     } else {
         return String.format("%.1f%s", size, sizes[sizeUnit])
     }
+}
+
+fun File.getSize(): Long {
+    var size: Long = 0
+    if (this.isDirectory) {
+        for (file in this.listFiles()!!) {
+            size += file.getSize()
+        }
+    } else {
+        size = this.length()
+    }
+    return size
 }

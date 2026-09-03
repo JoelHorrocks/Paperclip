@@ -14,6 +14,9 @@ interface TranslationModelDao {
     @Query("SELECT * FROM translationmodels")
     fun getAll(): Flow<List<TranslationModelEntity>>
 
+    @Query("SELECT * FROM translationmodels WHERE id = :id")
+    suspend fun get(id: Int): TranslationModelEntity?
+
     @Insert
     suspend fun insertAll(vararg translationModelEntities: TranslationModelEntity)
 

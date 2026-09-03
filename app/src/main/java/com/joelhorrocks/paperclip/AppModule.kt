@@ -14,6 +14,8 @@ import com.joelhorrocks.paperclip.history.HistoryRepositoryImpl
 import com.joelhorrocks.paperclip.ml.TranslationModelRepository
 import com.joelhorrocks.paperclip.ml.TranslationModelRepositoryImpl
 import com.joelhorrocks.paperclip.ml.local.TranslationModelDao
+import com.joelhorrocks.paperclip.ml.local.TranslationModelLocalDataSource
+import com.joelhorrocks.paperclip.ml.remote.TranslationModelRemoteDataSource
 import com.joelhorrocks.paperclip.news.NewsRepository
 import com.joelhorrocks.paperclip.news.NewsRepositoryImpl
 import com.joelhorrocks.paperclip.settings.SettingsRepository
@@ -33,6 +35,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.HttpTimeoutConfig
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CoroutineScope
@@ -82,12 +86,6 @@ abstract class AppModule {
 
     @Binds
     @Singleton
-    abstract fun bindTranslationModelRepository(
-        translationModelRepositoryImpl: TranslationModelRepositoryImpl
-    ): TranslationModelRepository
-
-    @Binds
-    @Singleton
     abstract fun bindTabController(
         tabControllerImpl: TabControllerImpl
     ): TabController
@@ -101,6 +99,24 @@ abstract class AppModule {
 
         @Provides
         @Singleton
+        fun provideTranslationModelRepository(
+            translationModelLocalDataSource: TranslationModelLocalDataSource,
+            translationModelRemoteDataSource: TranslationModelRemoteDataSource,
+            httpClient: HttpClient,
+            externalScope: CoroutineScope,
+            @ApplicationContext appContext: Context
+        ): TranslationModelRepository {
+            return TranslationModelRepositoryImpl(
+                translationModelLocalDataSource,
+                translationModelRemoteDataSource,
+                httpClient,
+                externalScope,
+                appContext.filesDir.toPath()
+            )
+        }
+
+        @Provides
+        @Singleton
         fun provideHttpClient(): HttpClient {
             return HttpClient(CIO) {
                 install(ContentNegotiation) {
@@ -110,6 +126,7 @@ abstract class AppModule {
                         }
                     )
                 }
+                install(HttpTimeout)
             }
         }
 

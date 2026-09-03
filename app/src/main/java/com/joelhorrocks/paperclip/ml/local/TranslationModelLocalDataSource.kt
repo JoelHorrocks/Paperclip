@@ -11,6 +11,10 @@ class TranslationModelLocalDataSource @Inject constructor(private val translatio
         return translationModelDao.getAll()
     }
 
+    suspend fun getModel(id: Int): TranslationModelEntity? {
+        return translationModelDao.get(id)
+    }
+
     suspend fun insertAll(vararg translationModelEntities: TranslationModelEntity) {
         translationModelDao.insertAll(*translationModelEntities)
     }

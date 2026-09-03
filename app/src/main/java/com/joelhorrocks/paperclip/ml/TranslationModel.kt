@@ -11,10 +11,11 @@ data class TranslationModel (
     val downloadStatus: TranslationModelDownloadStatus
 )
 
+// TODO: add unzipping stage
 sealed interface TranslationModelDownloadStatus{
     data class Available(val url: String): TranslationModelDownloadStatus
     data class Downloading(val progress: Float): TranslationModelDownloadStatus
-    data class Downloaded(val path: String): TranslationModelDownloadStatus
+    object Downloaded: TranslationModelDownloadStatus
     data class Error(val error: DownloadError): TranslationModelDownloadStatus
 }
 
