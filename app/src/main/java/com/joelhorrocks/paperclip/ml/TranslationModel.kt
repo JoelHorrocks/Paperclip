@@ -15,7 +15,7 @@ data class TranslationModel (
 sealed interface TranslationModelDownloadStatus{
     data class Available(val url: String): TranslationModelDownloadStatus
     data class Downloading(val progress: Float): TranslationModelDownloadStatus
-    object Downloaded: TranslationModelDownloadStatus
+    data class Downloaded(val path: String): TranslationModelDownloadStatus
     data class Error(val error: DownloadError): TranslationModelDownloadStatus
 }
 

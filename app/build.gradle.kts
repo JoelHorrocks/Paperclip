@@ -83,6 +83,7 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.ktor)
+    implementation(libs.onnxruntime)
 
     ksp(libs.hilt.compiler)
 }

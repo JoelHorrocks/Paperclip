@@ -1,5 +1,6 @@
 package com.joelhorrocks.paperclip
 
+import ai.onnxruntime.OrtEnvironment
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
@@ -13,6 +14,7 @@ import com.joelhorrocks.paperclip.history.HistoryRepository
 import com.joelhorrocks.paperclip.history.HistoryRepositoryImpl
 import com.joelhorrocks.paperclip.ml.TranslationModelRepository
 import com.joelhorrocks.paperclip.ml.TranslationModelRepositoryImpl
+import com.joelhorrocks.paperclip.ml.Translator
 import com.joelhorrocks.paperclip.ml.local.TranslationModelDao
 import com.joelhorrocks.paperclip.ml.local.TranslationModelLocalDataSource
 import com.joelhorrocks.paperclip.ml.remote.TranslationModelRemoteDataSource
@@ -99,19 +101,39 @@ abstract class AppModule {
 
         @Provides
         @Singleton
+        fun provideOrtEnvironment(): OrtEnvironment {
+            return OrtEnvironment.getEnvironment()
+        }
+
+        @Provides
+        @Singleton
+        fun provideTranslator(
+            ortEnvironment: OrtEnvironment,
+            @ApplicationContext appContext: Context
+        ): Translator {
+            return Translator(
+                ortEnvironment,
+                appContext.filesDir.toPath()
+            )
+        }
+
+        @Provides
+        @Singleton
         fun provideTranslationModelRepository(
             translationModelLocalDataSource: TranslationModelLocalDataSource,
             translationModelRemoteDataSource: TranslationModelRemoteDataSource,
             httpClient: HttpClient,
             externalScope: CoroutineScope,
-            @ApplicationContext appContext: Context
+            @ApplicationContext appContext: Context,
+            translator: Translator
         ): TranslationModelRepository {
             return TranslationModelRepositoryImpl(
                 translationModelLocalDataSource,
                 translationModelRemoteDataSource,
                 httpClient,
                 externalScope,
-                appContext.filesDir.toPath()
+                appContext.filesDir.toPath(),
+                translator
             )
         }
 

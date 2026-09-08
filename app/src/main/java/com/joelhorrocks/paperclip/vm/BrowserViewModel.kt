@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.joelhorrocks.paperclip.HOME_URL
 import com.joelhorrocks.paperclip.SEARCH_BASE_URI
 import com.joelhorrocks.paperclip.TabController
+import com.joelhorrocks.paperclip.ml.Translator
 import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.news.Article
 import com.joelhorrocks.paperclip.news.NewsRepository
@@ -32,7 +33,8 @@ class BrowserViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val newsRepository: NewsRepository,
     private val shortcutRepository: ShortcutRepository,
-    private val tabRepository: TabRepository
+    private val tabRepository: TabRepository,
+    private val translator: Translator
 ) : ViewModel() {
 
     data class BrowserUiState(
@@ -177,5 +179,12 @@ class BrowserViewModel @Inject constructor(
 
     fun loadTabs() {
         tabRepository.loadTabs()
+    }
+
+    fun translate() {
+        // TODO: tabcontroller loop
+        viewModelScope.launch {
+            translator.translate("1", "Test")
+        }
     }
 }

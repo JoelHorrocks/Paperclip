@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
@@ -230,6 +231,9 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                         },
                         closeTab = { tabId ->
                             browserViewModel.closeTab(tabId)
+                        },
+                        translate = {
+                            browserViewModel.translate()
                         }
                     )
                 }
@@ -354,7 +358,8 @@ fun NavBarContainer(
     goBack: () -> Unit,
     createTab: () -> Unit,
     selectTab: (tabId: String) -> Unit,
-    closeTab: (tabId: String) -> Unit
+    closeTab: (tabId: String) -> Unit,
+    translate: () -> Unit
 ) {
     val heightPx = with(LocalDensity.current) { 348.dp.toPx() }
     val bottomPaddingPx = with(LocalDensity.current) { bottomPadding.toPx() }
@@ -422,7 +427,8 @@ fun NavBarContainer(
                         scope.launch {
                             anchoredDraggableState.animateTo(DragAnchors.Start)
                         }
-                    })
+                    },
+                    translate)
                 Box(
                     modifier = Modifier
                         .height(348.dp + bottomPadding)
@@ -532,7 +538,8 @@ fun NavBar(
     goBack: () -> Unit,
     createTab: () -> Unit,
     navigate: (screen: Screen) -> Unit,
-    collapseDrawer: () -> Unit
+    collapseDrawer: () -> Unit,
+    translate: () -> Unit
 ) {
     Column {
         if(isLoading) {
@@ -674,6 +681,19 @@ fun NavBar(
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.History,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.translate)) },
+                        onClick = {
+                            // TODO: vm -> tabcontroller -> webextension -> tabcontroller -> vm (sharedflow) -> translator -> vm -> tabcontroller
+                            translate()
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Translate,
                                 contentDescription = null
                             )
                         }

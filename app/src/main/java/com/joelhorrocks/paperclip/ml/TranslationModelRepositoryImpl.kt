@@ -38,7 +38,8 @@ class TranslationModelRepositoryImpl @Inject constructor(
     private val translationModelRemoteDataSource: TranslationModelRemoteDataSource,
     private val httpClient: HttpClient,
     private val externalScope: CoroutineScope,
-    private val modelDirectory: Path
+    private val modelDirectory: Path,
+    private val translator: Translator
 ): TranslationModelRepository {
     private val remoteModels = MutableStateFlow(listOf<RemoteTranslationModel>())
     // TODO: remove
@@ -168,6 +169,8 @@ class TranslationModelRepositoryImpl @Inject constructor(
                             fromLanguage = model.fromLanguage,
                             toLanguage = model.toLanguage,
                             size = targetDirectory.getSize(),
+                            // TODO: make sure model directory is consistent
+                            path = targetDirectory.relativeTo(modelDirectory.toFile()).path
                         )
                     )
 
@@ -203,6 +206,7 @@ class TranslationModelRepositoryImpl @Inject constructor(
     override suspend fun deleteModel(id: Int) {
         val model = translationModelLocalDataSource.getModel(id)
         if (model != null) {
+            translator.handleDelete(model.path)
             translationModelLocalDataSource.delete(id)
             withContext(Dispatchers.IO) {
                 File("$modelDirectory/${model.id}").deleteRecursively()
