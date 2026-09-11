@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.joelhorrocks.paperclip.HOME_URL
 import com.joelhorrocks.paperclip.SEARCH_BASE_URI
 import com.joelhorrocks.paperclip.TabController
+import com.joelhorrocks.paperclip.ml.TranslationModel
+import com.joelhorrocks.paperclip.ml.TranslationModelDownloadStatus
+import com.joelhorrocks.paperclip.ml.TranslationModelRepository
 import com.joelhorrocks.paperclip.ml.Translator
 import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.news.Article
@@ -27,6 +30,13 @@ enum class ArticleLoadingState {
     LOADING, SUCCESS, ERROR, END
 }
 
+sealed class TranslationState {
+    object Idle : TranslationState()
+    object Loading : TranslationState()
+    data class Success(val text: String) : TranslationState()
+    object Error : TranslationState()
+}
+
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
     private val tabController: TabController,
@@ -34,6 +44,7 @@ class BrowserViewModel @Inject constructor(
     private val newsRepository: NewsRepository,
     private val shortcutRepository: ShortcutRepository,
     private val tabRepository: TabRepository,
+    private val translationModelRepository: TranslationModelRepository,
     private val translator: Translator
 ) : ViewModel() {
 
@@ -45,6 +56,8 @@ class BrowserViewModel @Inject constructor(
         val isLoading: Boolean = false,
         val loadingPercentage: Float = 0.0F,
         val showToolbarTooltip: Boolean = false,
+        val translationState: TranslationState = TranslationState.Idle,
+        val translationModels: List<TranslationModel> = emptyList(),
         val articleLoadingState: ArticleLoadingState = ArticleLoadingState.LOADING,
         val articleList: List<Article> = listOf(),
         val shortcutList: List<Shortcut> = listOf()
@@ -70,8 +83,9 @@ class BrowserViewModel @Inject constructor(
                 tabController.sessions,
                 settingsRepository.showDrawerTooltip,
                 // TODO: add distinctUntilChanged() in appropriate place
-                shortcutRepository.getAllShortcuts()
-            ) { tabsState, sessions, showDrawerTooltip, shortcuts ->
+                shortcutRepository.getAllShortcuts(),
+                translationModelRepository.models
+            ) { tabsState, sessions, showDrawerTooltip, shortcuts, models ->
                 val currentTab = tabsState.currentTab
                 _uiState.update {
                     it.copy(
@@ -80,7 +94,9 @@ class BrowserViewModel @Inject constructor(
                         currentSession = tabsState.currentTabId?.let { sessions[it] },
                         navBarText = if (currentTab?.currentUrl == HOME_URL) "" else currentTab?.currentUrl ?: "",
                         showToolbarTooltip = showDrawerTooltip,
-                        shortcutList = shortcuts
+                        shortcutList = shortcuts,
+                        // TODO: should this filtering be here
+                        translationModels = models.filter { model -> model.downloadStatus is TranslationModelDownloadStatus.Downloaded }
                     )
                 }
             }.collect()
@@ -181,10 +197,20 @@ class BrowserViewModel @Inject constructor(
         tabRepository.loadTabs()
     }
 
-    fun translate() {
+    fun translate(model: TranslationModel, text: String) {
+        _uiState.update {
+            it.copy(
+                translationState = TranslationState.Loading
+            )
+        }
         // TODO: tabcontroller loop
         viewModelScope.launch {
-            translator.translate("1", "Test")
+            val output = translator.translate(model.id.toString(), text)
+            _uiState.update {
+                it.copy(
+                    translationState = TranslationState.Success(output)
+                )
+            }
         }
     }
 }

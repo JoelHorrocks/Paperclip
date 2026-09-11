@@ -34,6 +34,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -78,6 +80,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.OutlinedTextFieldDefaults.Container
 import androidx.compose.material3.ProgressIndicatorDefaults
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -107,6 +110,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
@@ -130,10 +134,12 @@ import com.joelhorrocks.paperclip.utils.toTimeAgo
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import com.joelhorrocks.paperclip.vm.ArticleLoadingState
 import com.joelhorrocks.paperclip.vm.BrowserViewModel
+import com.joelhorrocks.paperclip.vm.TranslationState
 import kotlinx.coroutines.launch
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
 import kotlin.math.roundToInt
+import com.joelhorrocks.paperclip.ml.TranslationModel
 
 enum class DragAnchors {
     Start,
@@ -159,6 +165,20 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                     webPromptQueue.remove(prompt)
                 }
             }
+
+            var translateDialogOpen by remember { mutableStateOf(false) }
+
+            if(translateDialogOpen) {
+                TranslateDialog(
+                    closeDialog = { translateDialogOpen = false },
+                    translate = { model, text ->
+                        browserViewModel.translate(model, text)
+                    },
+                    translationState = state.translationState,
+                    translationModels = state.translationModels
+                )
+            }
+
             Box(
                 modifier = Modifier
                     .clickable(
@@ -232,8 +252,8 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
                         closeTab = { tabId ->
                             browserViewModel.closeTab(tabId)
                         },
-                        translate = {
-                            browserViewModel.translate()
+                        openTranslateDialog = {
+                            translateDialogOpen = true
                         }
                     )
                 }
@@ -359,7 +379,7 @@ fun NavBarContainer(
     createTab: () -> Unit,
     selectTab: (tabId: String) -> Unit,
     closeTab: (tabId: String) -> Unit,
-    translate: () -> Unit
+    openTranslateDialog: () -> Unit
 ) {
     val heightPx = with(LocalDensity.current) { 348.dp.toPx() }
     val bottomPaddingPx = with(LocalDensity.current) { bottomPadding.toPx() }
@@ -428,7 +448,7 @@ fun NavBarContainer(
                             anchoredDraggableState.animateTo(DragAnchors.Start)
                         }
                     },
-                    translate)
+                    openTranslateDialog)
                 Box(
                     modifier = Modifier
                         .height(348.dp + bottomPadding)
@@ -539,7 +559,7 @@ fun NavBar(
     createTab: () -> Unit,
     navigate: (screen: Screen) -> Unit,
     collapseDrawer: () -> Unit,
-    translate: () -> Unit
+    openTranslateDialog: () -> Unit
 ) {
     Column {
         if(isLoading) {
@@ -689,7 +709,7 @@ fun NavBar(
                         text = { Text(stringResource(R.string.translate)) },
                         onClick = {
                             // TODO: vm -> tabcontroller -> webextension -> tabcontroller -> vm (sharedflow) -> translator -> vm -> tabcontroller
-                            translate()
+                            openTranslateDialog()
                         },
                         leadingIcon = {
                             Icon(
@@ -1079,6 +1099,104 @@ fun Shortcut(icon: ImageVector, text: String, onClick: () -> Unit, onLongClick: 
             ) { onClick() }
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun TranslateDialog(closeDialog: () -> Unit, translate: (TranslationModel, String) -> Unit, translationState: TranslationState, translationModels: List<TranslationModel>) {
+    BasicAlertDialog(
+        onDismissRequest = { },
+        properties = DialogProperties(), content = {
+            Surface(
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .wrapContentHeight(),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = AlertDialogDefaults.TonalElevation,
+            ) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text(
+                        text =
+                            "Translate",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    // TODO: message for whole dialog when no models available
+                    if(translationModels.isNotEmpty()) {
+                        val (selectedOption, onOptionSelected) = remember {
+                            mutableStateOf(
+                                translationModels[0]
+                            )
+                        }
+                        Column(Modifier.selectableGroup()) {
+                            translationModels.forEach { model ->
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp)
+                                        .selectable(
+                                            selected = (model == selectedOption),
+                                            onClick = { onOptionSelected(model) },
+                                            role = Role.RadioButton
+                                        )
+                                        .padding(horizontal = 16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = (model == selectedOption),
+                                        onClick = null // null recommended for accessibility with screen readers
+                                    )
+                                    Text(
+                                        text = model.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.padding(start = 16.dp)
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        val textState = rememberTextFieldState()
+                        OutlinedTextField(
+                            state = textState,
+                            label = { Text("Text") }
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        when(translationState) {
+                            is TranslationState.Loading -> {
+                                ContainedLoadingIndicator()
+                            }
+                            is TranslationState.Success -> {
+                                Text(translationState.text)
+                            }
+                            is TranslationState.Error -> {
+                                Text("Error")
+                            }
+                            else -> {}
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.End,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    closeDialog()
+                                },
+                            ) {
+                                Text("Cancel")
+                            }
+                            TextButton(
+                                onClick = {
+                                    translate(selectedOption, textState.text.toString())
+                                },
+                            ) {
+                                Text("Translate")
+                            }
+                        }
+                    }
+                }
+            }
+        })
 }
 
 @Composable
