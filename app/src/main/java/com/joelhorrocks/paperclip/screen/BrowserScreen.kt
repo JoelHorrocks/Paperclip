@@ -1,5 +1,7 @@
 package com.joelhorrocks.paperclip.screen
 
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
@@ -103,12 +105,15 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
@@ -123,6 +128,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
 import com.joelhorrocks.paperclip.HOME_URL
 import com.joelhorrocks.paperclip.R
 import com.joelhorrocks.paperclip.Screen
@@ -140,6 +146,12 @@ import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
 import kotlin.math.roundToInt
 import com.joelhorrocks.paperclip.ml.TranslationModel
+import io.ktor.http.Url
+import io.ktor.http.parseUrl
+import io.ktor.util.debug.useContextElementInDebugMode
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlin.io.path.Path
 
 enum class DragAnchors {
     Start,
@@ -975,14 +987,14 @@ fun ShortcutsRow(
             contentPadding = PaddingValues(horizontal = 8.dp)
         ) {
             items(shortcutList) {
-                Shortcut(Icons.Default.Web, it.name, onClick = {
+                Shortcut(Icons.Default.Web, it.name, it.url, onClick = {
                     loadUrl(it.url)
                 }, onLongClick = {
                     deleteShortcut(it)
                 })
             }
             item {
-                Shortcut(Icons.Default.Add, "", onClick = {
+                Shortcut(Icons.Default.Add, null, null, onClick = {
                     createDialogOpen = true
                 }, onLongClick = {
                     // TODO: long press action or disable for this?
@@ -995,6 +1007,7 @@ fun ShortcutsRow(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateShortcutDialog(closeDialog: () -> Unit, insertShortcut: (Shortcut) -> Unit) {
+    val context = LocalContext.current
     BasicAlertDialog(
         onDismissRequest = { },
         properties = DialogProperties(), content = {
@@ -1041,13 +1054,35 @@ fun CreateShortcutDialog(closeDialog: () -> Unit, insertShortcut: (Shortcut) -> 
                         }
                         TextButton(
                             onClick = {
-                                insertShortcut(
-                                    Shortcut(
-                                        url = urlState.text.toString(),
-                                        name = nameState.text.toString()
-                                    )
-                                )
-                                closeDialog()
+                                // TODO: input validation
+                                var url = urlState.text.toString()
+                                if(url.isEmpty()) {
+                                    Toast.makeText(
+                                        context,
+                                        "URL cannot be empty",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } else {
+                                    if(!url.startsWith("http://") && !url.startsWith("https://")) {
+                                        url = "https://$url"
+                                    }
+
+                                    if(parseUrl(url) == null) {
+                                        Toast.makeText(
+                                            context,
+                                            "Invalid URL",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        insertShortcut(
+                                            Shortcut(
+                                                url = url,
+                                                name = nameState.text.toString()
+                                            )
+                                        )
+                                        closeDialog()
+                                    }
+                                }
                             },
                         ) {
                             Text("Confirm")
@@ -1059,7 +1094,7 @@ fun CreateShortcutDialog(closeDialog: () -> Unit, insertShortcut: (Shortcut) -> 
 }
 
 @Composable
-fun Shortcut(icon: ImageVector, text: String, onClick: () -> Unit, onLongClick: () -> Unit) {
+fun Shortcut(icon: ImageVector, text: String?, url: String?, onClick: () -> Unit, onLongClick: () -> Unit) {
     val haptics = LocalHapticFeedback.current
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
@@ -1083,21 +1118,39 @@ fun Shortcut(icon: ImageVector, text: String, onClick: () -> Unit, onLongClick: 
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                icon,
-                null,
+           SubcomposeAsyncImage (
+                // TODO: move elsewhere, implement proper favicon fetching
+                model = url?.let { "${"https"}://${Url(it).host}/favicon.ico" },
+                contentDescription = null,
                 modifier = Modifier.size(36.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                loading = {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                },
+                error = {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
             )
         }
-        Text(
-            text,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) { onClick() }
-        )
+        if (text != null) {
+            Text(
+                text,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) { onClick() }
+            )
+        }
     }
 }
 
