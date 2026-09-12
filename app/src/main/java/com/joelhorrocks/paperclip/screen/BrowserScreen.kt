@@ -1194,6 +1194,25 @@ fun TranslateDialog(closeDialog: () -> Unit, translate: (TranslationModel, Strin
                             }
                         }
                     }
+                    else {
+                        Text(
+                            text = "No models available",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.End,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    closeDialog()
+                                },
+                            ) {
+                                Text("Cancel")
+                            }
+                        }
+                    }
                 }
             }
         })

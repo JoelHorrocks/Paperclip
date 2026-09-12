@@ -15,6 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +39,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -47,6 +52,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.window.core.layout.WindowSizeClass
+import androidx.window.core.layout.WindowWidthSizeClass
 import coil3.compose.AsyncImage
 import com.joelhorrocks.paperclip.utils.toTimeAgo
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
@@ -82,8 +89,9 @@ fun NewsfeedScreen(newsfeedViewModel: NewsfeedViewModel, back: () -> Unit) {
             Column(
                 modifier = Modifier.padding(innerPadding)
             ) {
+                val windowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass
                 // TODO: swipe refresh, FAB to return to top
-                val listState = rememberLazyListState()
+                val listState = rememberLazyGridState()
                 val offset = 1
                 val triggerLoad by remember {
                     derivedStateOf {
@@ -91,8 +99,15 @@ fun NewsfeedScreen(newsfeedViewModel: NewsfeedViewModel, back: () -> Unit) {
                         lastVisibleItem?.index != 0 && lastVisibleItem?.index == listState.layoutInfo.totalItemsCount - offset
                     }
                 }
+                val columns = if(windowSizeClass.isWidthAtLeastBreakpoint(600)) 2 else 1
                 // TODO: error handling
-                LazyColumn(state = listState, contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyVerticalGrid(
+                    state = listState,
+                    contentPadding = PaddingValues(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    columns = GridCells.Fixed(columns)
+                ) {
                     items(state.articleList) { article ->
                         OutlinedCard(
                             modifier = Modifier
