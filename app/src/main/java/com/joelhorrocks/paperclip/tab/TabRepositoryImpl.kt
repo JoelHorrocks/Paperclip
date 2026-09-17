@@ -28,7 +28,6 @@ class TabRepositoryImpl @Inject constructor(
         initialize()
     }
 
-    // Load from JSON if present, otherwise create file and initial tab
     private fun initialize(): String {
         return open(HOME_URL)
     }
@@ -56,6 +55,7 @@ class TabRepositoryImpl @Inject constructor(
         }
     }
 
+    // TODO: handle tab id does not exist
     override fun close(tabId: String) {
         val tabs = tabsState.value.tabs
         val index = tabs.indexOfFirst { it.id == tabId }
@@ -124,9 +124,14 @@ class TabRepositoryImpl @Inject constructor(
     }
 
     override fun loadTabs() {
-        val tabs = tabLocalDataSource.loadTabs()
+        var tabs = tabLocalDataSource.loadTabs()
         // TODO: save current tab (save tabstate?)
-        // TODO: save geckoview state
+        // TODO: we don't want to duplicate homepage tab creation
+
+        if(tabs.isEmpty()) {
+            tabs = listOf(Tab(currentUrl = HOME_URL))
+        }
+
         _tabsState.update {
             it.copy(
                 tabs = tabs,
