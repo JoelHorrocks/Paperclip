@@ -30,13 +30,6 @@ enum class ArticleLoadingState {
     LOADING, SUCCESS, ERROR, END
 }
 
-sealed class TranslationState {
-    object Idle : TranslationState()
-    object Loading : TranslationState()
-    data class Success(val text: String) : TranslationState()
-    object Error : TranslationState()
-}
-
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
     private val tabController: TabController,
@@ -44,8 +37,7 @@ class BrowserViewModel @Inject constructor(
     private val newsRepository: NewsRepository,
     private val shortcutRepository: ShortcutRepository,
     private val tabRepository: TabRepository,
-    private val translationModelRepository: TranslationModelRepository,
-    private val translator: Translator
+    private val translationModelRepository: TranslationModelRepository
 ) : ViewModel() {
 
     data class BrowserUiState(
@@ -56,7 +48,6 @@ class BrowserViewModel @Inject constructor(
         val isLoading: Boolean = false,
         val loadingPercentage: Float = 0.0F,
         val showToolbarTooltip: Boolean = false,
-        val translationState: TranslationState = TranslationState.Idle,
         val translationModels: List<TranslationModel> = emptyList(),
         val articleLoadingState: ArticleLoadingState = ArticleLoadingState.LOADING,
         val articleList: List<Article> = listOf(),
@@ -91,7 +82,7 @@ class BrowserViewModel @Inject constructor(
                     it.copy(
                         tabs = tabsState.tabs,
                         currentTabIndex = tabsState.tabs.indexOfFirst { tab -> tab.id == tabsState.currentTabId },
-                        currentSession = tabsState.currentTabId?.let { sessions[it] },
+                        currentSession = tabsState.currentTabId?.let { sessions[it]?.geckoSession },
                         navBarText = if (currentTab?.currentUrl == HOME_URL) "" else currentTab?.currentUrl ?: "",
                         showToolbarTooltip = showDrawerTooltip,
                         shortcutList = shortcuts,
@@ -197,20 +188,7 @@ class BrowserViewModel @Inject constructor(
         tabRepository.loadTabs()
     }
 
-    fun translate(model: TranslationModel, text: String) {
-        _uiState.update {
-            it.copy(
-                translationState = TranslationState.Loading
-            )
-        }
-        // TODO: tabcontroller loop
-        viewModelScope.launch {
-            val output = translator.translate(model.id.toString(), text)
-            _uiState.update {
-                it.copy(
-                    translationState = TranslationState.Success(output)
-                )
-            }
-        }
+    fun translate(model: TranslationModel) {
+        tabController.sendTranslateRequest(uiState.value.currentTab!!.id, model)
     }
 }

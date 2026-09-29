@@ -140,7 +140,6 @@ import com.joelhorrocks.paperclip.utils.toTimeAgo
 import com.joelhorrocks.paperclip.ui.theme.PaperclipTheme
 import com.joelhorrocks.paperclip.vm.ArticleLoadingState
 import com.joelhorrocks.paperclip.vm.BrowserViewModel
-import com.joelhorrocks.paperclip.vm.TranslationState
 import kotlinx.coroutines.launch
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
@@ -183,10 +182,9 @@ fun BrowserScreen(browserViewModel: BrowserViewModel, navigate: (screen: Screen)
             if(translateDialogOpen) {
                 TranslateDialog(
                     closeDialog = { translateDialogOpen = false },
-                    translate = { model, text ->
-                        browserViewModel.translate(model, text)
+                    translate = { model ->
+                        browserViewModel.translate(model)
                     },
-                    translationState = state.translationState,
                     translationModels = state.translationModels
                 )
             }
@@ -1156,7 +1154,7 @@ fun Shortcut(icon: ImageVector, text: String?, url: String?, onClick: () -> Unit
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun TranslateDialog(closeDialog: () -> Unit, translate: (TranslationModel, String) -> Unit, translationState: TranslationState, translationModels: List<TranslationModel>) {
+fun TranslateDialog(closeDialog: () -> Unit, translate: (TranslationModel) -> Unit, translationModels: List<TranslationModel>) {
     BasicAlertDialog(
         onDismissRequest = { },
         properties = DialogProperties(), content = {
@@ -1208,25 +1206,7 @@ fun TranslateDialog(closeDialog: () -> Unit, translate: (TranslationModel, Strin
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        val textState = rememberTextFieldState()
-                        OutlinedTextField(
-                            state = textState,
-                            label = { Text("Text") }
-                        )
                         Spacer(modifier = Modifier.height(24.dp))
-                        when(translationState) {
-                            is TranslationState.Loading -> {
-                                ContainedLoadingIndicator()
-                            }
-                            is TranslationState.Success -> {
-                                Text(translationState.text)
-                            }
-                            is TranslationState.Error -> {
-                                Text("Error")
-                            }
-                            else -> {}
-                        }
                         Row(
                             horizontalArrangement = Arrangement.End,
                             modifier = Modifier.fillMaxWidth()
@@ -1240,7 +1220,7 @@ fun TranslateDialog(closeDialog: () -> Unit, translate: (TranslationModel, Strin
                             }
                             TextButton(
                                 onClick = {
-                                    translate(selectedOption, textState.text.toString())
+                                    translate(selectedOption)
                                 },
                             ) {
                                 Text("Translate")

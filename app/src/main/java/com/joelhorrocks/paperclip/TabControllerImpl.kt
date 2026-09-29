@@ -1,11 +1,6 @@
 package com.joelhorrocks.paperclip
 
-import com.joelhorrocks.paperclip.delegate.PaperclipContentDelegate
-import com.joelhorrocks.paperclip.delegate.PaperclipHistoryDelegate
-import com.joelhorrocks.paperclip.delegate.PaperclipNavigationDelegate
-import com.joelhorrocks.paperclip.delegate.PaperclipProgressDelegate
-import com.joelhorrocks.paperclip.delegate.PaperclipPromptDelegate
-import com.joelhorrocks.paperclip.history.HistoryRepository
+import com.joelhorrocks.paperclip.ml.TranslationModel
 import com.joelhorrocks.paperclip.model.Prompt
 import com.joelhorrocks.paperclip.model.Tab
 import com.joelhorrocks.paperclip.tab.TabRepository
@@ -25,10 +20,10 @@ import javax.inject.Inject
 class TabControllerImpl @Inject constructor(
     private val browserEngine: BrowserEngine,
     private val tabRepository: TabRepository,
-    private val historyRepository: HistoryRepository,
-    private val externalScope: CoroutineScope
+    private val externalScope: CoroutineScope,
+    private val liveTabFactory: LiveTab.Factory
 ) : TabController {
-    private val _sessions = MutableStateFlow(mapOf<String, GeckoSession>())
+    private val _sessions = MutableStateFlow(mapOf<String, LiveTab>())
     override val sessions = _sessions.asStateFlow()
 
     private val _prompts = MutableSharedFlow<Prompt>()
@@ -48,10 +43,11 @@ class TabControllerImpl @Inject constructor(
                     for (id in toCreate) {
                         val tab = tabRepository.tabsState.value.tabs.first { it.id == id }
                         browserEngine.createSession().let { session ->
+                            val liveTab = liveTabFactory.create(session, tab.id)
                             _sessions.update {
-                                it + Pair(tab.id, session)
+                                it + Pair(tab.id, liveTab)
                             }
-                            attachDelegates(session, tab.id)
+                            attachTabFlows(liveTab)
                             GeckoSession.SessionState.fromString(tab.sessionSnapshot)?.let {
                                 // TODO: some way to control session snapshots to ensure it matches with engine
                                 session.restoreState(it)
@@ -69,38 +65,24 @@ class TabControllerImpl @Inject constructor(
         }
     }
 
-    private fun attachDelegates(session: GeckoSession, tabId: String) {
-        session.navigationDelegate = PaperclipNavigationDelegate(
-            tabRepository,
-            tabId,
-        ) {
-            val newSession = GeckoSession()
-            val tab = Tab()
-            _sessions.update {
-                it + Pair(tab.id, newSession)
-            }
-            attachDelegates(newSession, tab.id)
-
-            tabRepository.insertTab(tab)
-            tabRepository.setCurrentTab(tab.id)
-
-            newSession
-        }
-
-        session.historyDelegate = PaperclipHistoryDelegate(historyRepository, externalScope)
-        session.promptDelegate = PaperclipPromptDelegate {
-            externalScope.launch {
-                _prompts.emit(it)
+    private fun attachTabFlows(liveTab: LiveTab) {
+        externalScope.launch {
+            liveTab.prompts.collect {
+                externalScope.launch {
+                    _prompts.emit(it)
+                }
             }
         }
-        session.contentDelegate = PaperclipContentDelegate(
-            tabRepository,
-            tabId
-        ) { session, currentUrl ->
-            browserEngine.openSession(session)
-            session.loadUri(currentUrl)
+
+        externalScope.launch {
+            liveTab.sessions.collect {
+                val newLiveTab = liveTabFactory.create(it.first, it.second)
+                _sessions.update { sessionMap ->
+                    sessionMap + Pair(it.second, newLiveTab)
+                }
+                attachTabFlows(newLiveTab)
+            }
         }
-        session.progressDelegate = PaperclipProgressDelegate(tabRepository, tabId)
     }
 
     override fun loadUrl(tab: Tab, url: String) {
@@ -113,7 +95,7 @@ class TabControllerImpl @Inject constructor(
         val newSession = sessions.value[tabId] ?: return
         // TODO: handle
         if (!newSession.isOpen) {
-            browserEngine.openSession(newSession)
+            browserEngine.openSession(newSession.geckoSession)
             newSession.loadUri(tabRepository.tabsState.value.tabs.first { it.id == tabId }.currentUrl)
         }
         tabRepository.setCurrentTab(tabId)
@@ -132,5 +114,9 @@ class TabControllerImpl @Inject constructor(
 
     override fun goBack(tab: Tab) {
         sessions.value[tab.id]?.goBack()
+    }
+
+    override fun sendTranslateRequest(tabId: String, model: TranslationModel) {
+        sessions.value[tabId]?.translate(model)
     }
 }

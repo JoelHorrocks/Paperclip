@@ -12,6 +12,7 @@ import androidx.collection.longListOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.float
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
@@ -25,8 +26,13 @@ import java.nio.file.Path
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.collections.flatten
+import kotlin.collections.mutableMapOf
 import kotlin.math.exp
 
+data class TranslationSession(
+    val encoderSession: OrtSession,
+    val decoderSession: OrtSession
+)
 
 // TODO: interface, objects for each model rather than just path (modular from just ONNX)
 // TODO: handle model deletion during translation
@@ -36,7 +42,7 @@ class Translator @Inject constructor(
     // TODO: make sure model directory is consistent
     private val modelDirectory: Path
 ) {
-    private val sessions = mutableMapOf<String, Pair<OrtSession, OrtSession>>()
+    private val sessions = mutableMapOf<String, TranslationSession>()
 
     private fun encodeWord(word: String, tokenizerMap: Map<String, Float>): List<String> {
         val bestSegmentations = mutableListOf<Pair<Int?, Int?>>()
@@ -98,10 +104,10 @@ class Translator @Inject constructor(
 
         // TODO: handle JSON properly
         // TODO: store in a better way (in JSON file)
-        val tokenizerMap = mutableMapOf<String, Float>()
         val unigramModelText = withContext(Dispatchers.IO) { unigramModel.readText() }
         val tokenizerList = json.parseToJsonElement(unigramModelText).jsonObject["vocab"]!!.jsonArray
 
+        val tokenizerMap = mutableMapOf<String, Float>()
         for (tokenizerItem in tokenizerList) {
             tokenizerMap[tokenizerItem.jsonObject["token"]!!.jsonPrimitive.content] =
                 tokenizerItem.jsonObject["score"]!!.jsonPrimitive.float
@@ -132,10 +138,13 @@ class Translator @Inject constructor(
             decoderSession = ortEnvironment.createSession(decoderModel.path)
 
             // TODO: evict old sessions on low memory?
-            sessions[path] = Pair(encoderSession, decoderSession)
+            sessions[path] = TranslationSession(
+                encoderSession,
+                decoderSession
+            )
         } else {
-            encoderSession = sessions[path]!!.first
-            decoderSession = sessions[path]!!.second
+            encoderSession = sessions[path]!!.encoderSession
+            decoderSession = sessions[path]!!.decoderSession
         }
 
         val encoderInputIds = OnnxTensor.createTensor(ortEnvironment, LongBuffer.wrap(inputTokens.toLongArray()), longArrayOf(1, inputTokens.size.toLong()))
