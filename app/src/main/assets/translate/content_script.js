@@ -11,8 +11,10 @@ port.onMessage.addListener(response => {
           NodeFilter.SHOW_TEXT,
           {
             acceptNode: function(node) {
-              if (node.nextElementSibling != null ||
-                  (node.textContent.length <= 2 && node.textContent.search("\n") != -1)) {
+              if (!node.nodeValue.trim()) {
+                return NodeFilter.FILTER_SKIP;
+              }
+              else if (node.parentElement.closest('script, style')) {
                 return NodeFilter.FILTER_SKIP;
               }
               else {
