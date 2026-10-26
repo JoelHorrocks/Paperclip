@@ -29,6 +29,19 @@ class TabControllerImpl @Inject constructor(
     private val _prompts = MutableSharedFlow<Prompt>()
     override val prompts = _prompts.asSharedFlow()
 
+    private val prompt: (Prompt) -> Unit = {
+        externalScope.launch {
+            _prompts.emit(it)
+        }
+    }
+
+    private val addSession: (GeckoSession, String) -> Unit = { geckoSession, tabId ->
+        val newLiveTab = liveTabFactory.create(geckoSession, tabId, addSession, prompt)
+        _sessions.update { sessionMap ->
+            sessionMap + Pair(tabId, newLiveTab)
+        }
+    }
+
     init {
         // TODO: move to correct place
         // TODO: replace with some sort of 'ensureSession' system?
@@ -43,11 +56,16 @@ class TabControllerImpl @Inject constructor(
                     for (id in toCreate) {
                         val tab = tabRepository.tabsState.value.tabs.first { it.id == id }
                         browserEngine.createSession().let { session ->
-                            val liveTab = liveTabFactory.create(session, tab.id)
+                            val liveTab = liveTabFactory.create(
+                                session,
+                                tab.id,
+                                addSession,
+                                prompt
+                            )
+
                             _sessions.update {
                                 it + Pair(tab.id, liveTab)
                             }
-                            attachTabFlows(liveTab)
                             GeckoSession.SessionState.fromString(tab.sessionSnapshot)?.let {
                                 // TODO: some way to control session snapshots to ensure it matches with engine
                                 session.restoreState(it)
@@ -62,26 +80,6 @@ class TabControllerImpl @Inject constructor(
                         }
                     }
                 }
-        }
-    }
-
-    private fun attachTabFlows(liveTab: LiveTab) {
-        externalScope.launch {
-            liveTab.prompts.collect {
-                externalScope.launch {
-                    _prompts.emit(it)
-                }
-            }
-        }
-
-        externalScope.launch {
-            liveTab.sessions.collect {
-                val newLiveTab = liveTabFactory.create(it.first, it.second)
-                _sessions.update { sessionMap ->
-                    sessionMap + Pair(it.second, newLiveTab)
-                }
-                attachTabFlows(newLiveTab)
-            }
         }
     }
 

@@ -33,6 +33,8 @@ import kotlin.collections.set
 class LiveTab @AssistedInject constructor(
     @Assisted val geckoSession: GeckoSession,
     @Assisted val tabId: String,
+    @Assisted addSession: (GeckoSession, String) -> Unit,
+    @Assisted prompt: (Prompt) -> Unit,
     private val historyRepository: HistoryRepository,
     private val tabRepository: TabRepository,
     private val browserEngine: BrowserEngine,
@@ -40,11 +42,6 @@ class LiveTab @AssistedInject constructor(
     // TODO: tab lifetime scope?
     private val externalScope: CoroutineScope
 ) {
-    private val _prompts = MutableSharedFlow<Prompt>()
-    val prompts = _prompts.asSharedFlow()
-
-    private val _sessions = MutableSharedFlow<Pair<GeckoSession, String>>()
-    val sessions = _sessions.asSharedFlow()
 
     val isOpen
         get() = geckoSession.isOpen
@@ -54,11 +51,7 @@ class LiveTab @AssistedInject constructor(
     init {
         geckoSession.historyDelegate = PaperclipHistoryDelegate(historyRepository, externalScope)
         geckoSession.progressDelegate = PaperclipProgressDelegate(tabRepository, tabId)
-        geckoSession.promptDelegate = PaperclipPromptDelegate {
-            externalScope.launch {
-                _prompts.emit(it)
-            }
-        }
+        geckoSession.promptDelegate = PaperclipPromptDelegate { prompt(it) }
         geckoSession.navigationDelegate = PaperclipNavigationDelegate(
             tabRepository,
             tabId,
@@ -66,9 +59,7 @@ class LiveTab @AssistedInject constructor(
             val newSession = GeckoSession()
             val tab = Tab()
 
-            externalScope.launch {
-                _sessions.emit(Pair(newSession, tab.id))
-            }
+            addSession(newSession, tab.id)
 
             tabRepository.insertTab(tab)
             tabRepository.setCurrentTab(tab.id)
@@ -151,5 +142,5 @@ class LiveTab @AssistedInject constructor(
     }
 
     @AssistedFactory
-    interface Factory { fun create(@Assisted geckoSession: GeckoSession, @Assisted tabId: String): LiveTab }
+    interface Factory { fun create(@Assisted geckoSession: GeckoSession, @Assisted tabId: String, @Assisted addSession: (GeckoSession, String) -> Unit, @Assisted prompt: (Prompt) -> Unit): LiveTab }
 }
